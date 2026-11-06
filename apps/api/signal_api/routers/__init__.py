@@ -6,7 +6,7 @@ import importlib
 
 from fastapi import FastAPI
 
-MILESTONE_ROUTERS: list[str] = ["sources", "capture", "stories", "briefs"]
+MILESTONE_ROUTERS: list[str] = ["sources", "capture", "stories", "briefs", "studio"]
 
 
 def register_all(app: FastAPI) -> None:

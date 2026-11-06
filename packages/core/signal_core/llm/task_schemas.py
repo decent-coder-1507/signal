@@ -117,6 +117,102 @@ class WatchCheckOut(Out):
     explanation: str = ""
 
 
+# ---------------- STUDIO (§7.3–7.8) ----------------
+AngleType = Literal[
+    "explainer",
+    "practitioner",
+    "contrarian",
+    "personal_story",
+    "how_to",
+    "prediction",
+    "question",
+    "india_lens",
+    "build_in_public",
+]
+PlatformName = Literal["linkedin", "x", "x_thread", "instagram_carousel", "instagram_reel", "hashnode"]
+
+
+class NeedInput(Out):
+    question: str = Field(description="short question asking for a real personal detail")
+    why: str = ""
+
+
+class Angle(Out):
+    angle_type: AngleType
+    thesis: str = Field(description="one-line thesis")
+    credibility: str = Field(description="why the author is credible to say it")
+    needs_input: list[NeedInput] = []
+    platforms: list[PlatformName] = []
+    risk: Literal["low", "medium", "high"] = "low"
+
+
+class AnglesOut(Out):
+    angles: list[Angle] = Field(min_length=1, max_length=5)
+
+
+class Claim(Out):
+    sentence: str
+    source_ids: list[str] = Field(description="item ids or r:<raw material id>; empty only for opinion")
+
+
+class DraftVersionOut(Out):
+    label: str = "A"
+    body: str = ""
+    thread: list[str] = []
+    first_comment: str = ""
+
+
+class WriterOut(Out):
+    versions: list[DraftVersionOut] = Field(min_length=1, max_length=3)
+    claims: list[Claim] = []
+
+
+class CriterionScore(Out):
+    points: float
+    why: str = ""
+
+
+class GradeOut(Out):
+    scores: dict[str, CriterionScore]
+    total: float = Field(ge=0, le=10)
+    ai_phrases: list[str] = []
+    top_edits: list[str] = Field(default=[], max_length=3)
+    verdict: str = ""
+
+
+class ClaimVerdict(Out):
+    sentence: str
+    verdict: Literal["supported", "partially", "unsupported"]
+    evidence_span: str = ""
+    fix_suggestion: str = ""
+
+
+class FactCheckOut(Out):
+    results: list[ClaimVerdict]
+
+
+class SafetyFlag(Out):
+    type: Literal["confidential", "accusation", "political", "legal_financial_advice", "overclaim", "other"]
+    text: str
+    severity: Literal["low", "medium", "high"] = "medium"
+    note: str = ""
+
+
+class SafetyOut(Out):
+    flags: list[SafetyFlag] = []
+
+
 register(
-    EnrichBatch, StoryInsightOut, StoryJudgeOut, StoryTitleOut, TieBreakOut, BriefToplineOut, WatchCheckOut
+    EnrichBatch,
+    StoryInsightOut,
+    StoryJudgeOut,
+    StoryTitleOut,
+    TieBreakOut,
+    BriefToplineOut,
+    WatchCheckOut,
+    AnglesOut,
+    WriterOut,
+    GradeOut,
+    FactCheckOut,
+    SafetyOut,
 )

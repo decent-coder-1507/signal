@@ -366,3 +366,215 @@ def watch_check(inputs: dict[str, Any]) -> dict[str, Any]:
         "triggered": ok,
         "explanation": ("Matches: " + ", ".join(hits)) if ok else "No match on the watch condition.",
     }
+
+
+# ---------------- STUDIO ----------------
+ANGLE_ORDER = ["practitioner", "contrarian", "how_to", "personal_story", "india_lens"]
+
+
+@mock_generator("angles")
+def angles(inputs: dict[str, Any]) -> dict[str, Any]:
+    title = inputs.get("seed_title") or "this"
+    has_raw = bool(inputs.get("raw"))
+    out = []
+    for t in ANGLE_ORDER[:4]:
+        thesis = {
+            "practitioner": f"What {title[:70]} actually changes for teams shipping LLM features",
+            "contrarian": f"The headline number in {title[:60]} is not the part that matters",
+            "how_to": f"A 10-minute way to test {title[:60]} on your own backlog",
+            "personal_story": f"Where {title[:60]} meets what I see at work",
+            "india_lens": f"What {title[:60]} means for engineers in India",
+        }[t]
+        needs = (
+            []
+            if t != "personal_story" or has_raw
+            else [
+                {
+                    "question": "Have you used something like this at VANCO? One line on what happened.",
+                    "why": "Personal angle needs a real detail.",
+                }
+            ]
+        )
+        out.append(
+            {
+                "angle_type": t,
+                "thesis": thesis,
+                "credibility": "Builds production LLM systems daily; stack overlaps the topic.",
+                "needs_input": needs,
+                "platforms": ["linkedin", "x"] if t != "how_to" else ["x_thread", "linkedin"],
+                "risk": "low",
+            }
+        )
+    return {"angles": out}
+
+
+def _compress(sent: str) -> str:
+    """Short line around the first number (names/numbers verbatim, never a 15+ word copy of the source)."""
+    toks = sent.rstrip(".").split()
+    i = next((k for k, t in enumerate(toks) if _NUM.search(t)), None)
+    window = toks[max(0, i - 4) : i + 5] if i is not None else toks[:9]
+    line = " ".join(window).strip(",;:")
+    line = re.sub(r",\s*\w+$", "", line)
+    return (line[:1].upper() + line[1:]).rstrip(",") + "."
+
+
+def _fact_lines(sources: list[dict[str, Any]], n: int) -> list[tuple[str, str]]:
+    out: list[tuple[str, str]] = []
+    for s in sources:
+        for sent in sents(s.get("text", "")):
+            if (_NUM.search(sent) or _CAP.search(sent[1:])) and not HYPE.search(sent):
+                line = _compress(sent)
+                if line not in [x for x, _ in out] and len(line.split()) >= 4:
+                    out.append((line, s["id"]))
+            if len(out) >= n:
+                return out
+    return out
+
+
+@mock_generator("writer")
+def writer(inputs: dict[str, Any]) -> dict[str, Any]:
+    platform = inputs.get("platform", "linkedin")
+    sources = inputs.get("sources", [])
+    raw = inputs.get("raw", [])
+    emoji = (inputs.get("voice", {}).get("rules", {}).get("emoji", {}).get("set") or ["🚀"])[0]
+    facts = _fact_lines(sources, 4)
+    claims = [{"sentence": f, "source_ids": [sid]} for f, sid in facts]
+    personal = [(r["text"].strip().rstrip("."), r["id"]) for r in raw[:1]]
+    for p, rid in personal:
+        claims.append({"sentence": p + ".", "source_ids": [f"r:{rid}"]})
+    thesis = inputs.get("angle", {}).get("thesis", "")
+    if platform in ("x", "x_thread"):
+        first = facts[0][0] if facts else thesis
+        if platform == "x":
+            body = f"{first}\n\nThe interesting part is what it changes for people shipping LLM features.\n\nWhat would you test first?"
+            if len(body) > 280:
+                body = f"{first[:200]}\n\nWhat would you test first?"
+            return {"versions": [{"label": "A", "body": body}], "claims": claims[:1]}
+        posts = [f"{thesis[:200]} 🧵"]
+        posts += [f[:270] for f, _ in facts[:3]]
+        if personal:
+            posts.append(personal[0][0][:270] + ".")
+        posts.append("What would you try first? Links to the sources in the reply.")
+        while len(posts) < 4:
+            posts.insert(-1, "The part worth watching is how this holds up outside the benchmark.")
+        return {"versions": [{"label": "A", "body": "\n\n".join(posts), "thread": posts}], "claims": claims}
+    hook = (personal[0][0] + ".") if personal else (facts[0][0] if facts else thesis)
+    lines = [hook, ""]
+    for f, _ in facts[1 if not personal else 0 : 4]:
+        lines += [f, ""]
+    lines += [
+        "Benchmarks are a starting point, not the answer.",
+        "",
+        "I would test it on one real task before changing anything.",
+        "",
+        f"What would you check first? {emoji}",
+    ]
+    body_a = "\n".join(lines)
+    short = [facts[0][0] if facts else thesis, "", f"Would you switch your stack for this? {emoji}"]
+    return {
+        "versions": [
+            {"label": "A", "body": body_a, "first_comment": "Sources in the links below."},
+            {"label": "B", "body": "\n".join(short)},
+        ],
+        "claims": claims,
+    }
+
+
+@mock_generator("grader")
+def grader(inputs: dict[str, Any]) -> dict[str, Any]:
+    draft = inputs.get("draft", "")
+    low = draft.lower()
+    score = {
+        "Hook": 1.6,
+        "Rhythm": 1.7,
+        "Specificity": 1.6,
+        "Voice match": 1.6,
+        "Ending": 1.0,
+        "Restraint": 0.9,
+    }
+    ai_phrases = [
+        p
+        for p in (
+            "here's the thing",
+            "game-changer",
+            "let that sink in",
+            "delve",
+            "unlock",
+            "in today's fast-paced world",
+        )
+        if p in low
+    ]
+    if ai_phrases:
+        score["Voice match"] = 0.5
+    if "—" in draft:
+        score["Rhythm"] -= 0.7
+    if not draft.rstrip().endswith(("?", "?" + draft.rstrip()[-1:])) and "?" not in draft[-40:]:
+        score["Ending"] = 0.3
+    if not _NUM.search(draft):
+        score["Specificity"] = 1.0
+    total = round(sum(score.values()), 1)
+    edits = [
+        "Open with the most concrete number or quote",
+        "Cut the abstract lines; keep one plain lesson",
+        "End on a specific question your peers can answer",
+    ]
+    return {
+        "scores": {k: {"points": round(v, 1), "why": ""} for k, v in score.items()},
+        "total": min(total, 10),
+        "ai_phrases": ai_phrases,
+        "top_edits": edits[:3],
+        "verdict": "would post" if total >= 8 else "would not post yet",
+    }
+
+
+@mock_generator("factcheck")
+def factcheck(inputs: dict[str, Any]) -> dict[str, Any]:
+    out = []
+    for c in inputs.get("claims", []):
+        src = " ".join(s.get("text", "") for s in c.get("sources", []))
+        sent = c["sentence"]
+        nums = [t.strip(".,;:()\"'") for t in sent.split() if _NUM.search(t)]
+
+        def found(tok: str, src: str = src) -> bool:  # whole-token match: "$1" must not match "$15"
+            return re.search(r"(?<![\w$])" + re.escape(tok) + r"(?![\w])", src) is not None
+
+        if not src.strip():
+            v, ev = "unsupported", ""
+        elif sent.strip().rstrip(".") in src or (nums and all(found(n) for n in nums)):
+            v, ev = "supported", next((s for s in sents(src) if any(found(n) for n in nums)), sent)
+        elif not nums and sum(w in src.lower() for w in sent.lower().split()) >= len(sent.split()) * 0.6:
+            v, ev = "supported", sent
+        else:
+            v, ev = "unsupported", ""
+        out.append(
+            {
+                "sentence": sent,
+                "verdict": v,
+                "evidence_span": ev,
+                "fix_suggestion": ""
+                if v == "supported"
+                else "Remove or rewrite using only the cited source.",
+            }
+        )
+    return {"results": out}
+
+
+@mock_generator("safety_check")
+def safety_check(inputs: dict[str, Any]) -> dict[str, Any]:
+    text = inputs.get("text", "")
+    flags = []
+    for k in inputs.get("confidential", []):
+        if k and k.lower() in text.lower():
+            flags.append(
+                {"type": "confidential", "text": k, "severity": "high", "note": "confidential keyword"}
+            )
+    for w in ("fraud", "scam", "lied", "stole"):
+        if re.search(rf"\b{w}\b", text, re.I):
+            flags.append(
+                {"type": "accusation", "text": w, "severity": "high", "note": "unverified accusation"}
+            )
+    if re.search(r"\b(guaranteed returns|you should invest|buy this stock)\b", text, re.I):
+        flags.append(
+            {"type": "legal_financial_advice", "text": "investment advice tone", "severity": "medium"}
+        )
+    return {"flags": flags}
