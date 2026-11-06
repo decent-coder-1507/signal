@@ -1,0 +1,10 @@
+{
+  "name": "signal",
+  "private": true,
+  "packageManager": "pnpm@12.3.4",
+  "scripts": {
+    "web": "pnpm --filter @signal/web",
+    "test": "pnpm --filter @signal/web test",
+    "e2e": "pnpm --filter @signal/web e2e"
+  }
+}

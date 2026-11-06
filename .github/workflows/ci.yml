@@ -1,0 +1,30 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env: {POSTGRES_USER: signal, POSTGRES_PASSWORD: signal, POSTGRES_DB: signal}
+        ports: ["5442:5432"]
+        options: --health-cmd "pg_isready -U signal" --health-interval 5s --health-retries 20
+    env:
+      SIGNAL_MODE: mock
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 24, cache: pnpm}
+      - run: uv sync
+      - run: pnpm install --frozen-lockfile
+      - name: create test databases
+        run: |
+          PGPASSWORD=signal psql -h localhost -p 5442 -U signal -c "CREATE DATABASE signal_test" -c "CREATE DATABASE signal_e2e"
+      - run: python3 scripts/dev.py test
+      - run: uv run pip-audit || true
+      - run: pnpm audit --prod || true
+      - run: pnpm --filter @signal/web exec playwright install --with-deps chromium
+      - run: python3 scripts/dev.py e2e

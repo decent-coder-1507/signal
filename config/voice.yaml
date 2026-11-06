@@ -1,0 +1,26 @@
+base: "Founder talking to a friend, typed on a phone. First person."
+rules:
+  one_sentence_per_line: true
+  max_words_per_line: 15
+  caps_emphasis_words: [1, 2]
+  emoji: {min: 1, max: 3, position: line_end, set: ["🚀", "🔥", "😅", "🙌", "💡"]}   # edit to his own
+  hashtags: {min: 0, max: 3}
+  ending: [question, link_in_comments]
+  story_arc: [moment_now, flashback_struggle, the_turn, plain_lesson]
+hook_types: [real_quote, blunt_question, milestone_emoji, surprising_number]
+banned_phrases: ["Here's the thing", "Let that sink in", "game-changer", "game changer", "In today's fast-paced world",
+                 "leverage", "synergy", "unlock", "delve", "revolutionize", "revolutionise", "buckle up",
+                 "it's not just", "in conclusion"]
+banned_patterns:
+  - '\bit''?s not (?:just )?\w+(?: \w+){0,3}, it''?s\b'
+  - '^\s*\d+[.)]\s+(?:lesson|tip)'
+banned_chars: ["—"]
+target_score: 8
+max_revise_loops: 2
+platforms:
+  linkedin: {words: [80, 200], short_version_words_max: 60, links: first_comment}
+  x: {chars_max: 280, thread_posts: [4, 10]}
+  instagram_carousel: {size: [1080, 1350], slides: [6, 10], words_per_slide_max: 30, hashtags: [3, 8]}
+  instagram_reel: {seconds: [30, 60], hook_seconds_max: 2}
+  hashnode: {words: [1200, 2500], on_request_only: true}
+goals_per_week: {linkedin: 3, x: 5, instagram: 2}

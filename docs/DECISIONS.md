@@ -24,3 +24,18 @@ Host Python is 3.14, but the spec says 3.12. uv pins 3.12 for wheel availability
 
 ## ADR-006 · Model tiers → CLI aliases (2026-11-06)
 `config/budget.yaml`: fast = `haiku` (claude-haiku-5-5), balanced = `sonnet` (claude-sonnet-5-5), deep = `opus` (claude-opus-5-5). Verified at models/overview and model-config docs. Prices come from published API pricing, stored in config and used only for notional cost.
+
+## ADR-007 · Job queue: Arq + inline fallback (2026-11-06)
+`signal_core.jobs`: with `SIGNAL_USE_REDIS_QUEUE=true` jobs go to Arq/Redis (idempotent `_job_id = name:key`). Otherwise they run inline (tests, single-process dev). Every attempt goes in `jobs`. After 3 failures a job is `dead` (dead-letter list for Ops). The scheduler claims due routines (sets `last_run_at`) before enqueueing, so a slow run is never double-fired.
+
+## ADR-008 · Auth details (2026-11-06)
+Signed session cookie (itsdangerous, 30 days, HttpOnly, SameSite=Lax) plus a double-submit CSRF cookie and the `x-csrf-token` header on writes. Bearer API token (sha256-hashed) skips CSRF. Login is limited to 10/min per IP, and the account locks for 15 min after 5 failures. The web app proxies `/api/*` to the API (Next rewrites), so cookies stay same-origin.
+
+## ADR-009 · Mock providers (2026-11-06)
+MockProvider looks up `fixtures/llm/<task>/<hash12>.json` first, then a deterministic per-task generator that only quotes input text, so mock outputs pass the same truth validators as live. MockEmbeddingProvider is a hashed bag of words with bigrams (384-d), so cosine tracks lexical overlap and dedupe/cluster tests stay deterministic.
+
+## ADR-010 · Playwright uses installed Chrome locally (2026-11-06)
+The sandbox blocked the Playwright browser download (cdn.playwright.dev ENOTFOUND from node). Locally, e2e uses `channel: "chrome"` (installed Google Chrome; override with `PW_CHANNEL`). CI uses the bundled Chromium.
+
+## ADR-011 · Ledger writes in their own transaction (2026-11-06)
+`llm_calls` rows are committed independently of the caller's transaction, so failed or blocked calls still count toward the budget even when the caller rolls back.

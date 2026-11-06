@@ -5,7 +5,7 @@ Status legend: ☐ not started · ◐ in progress · ☑ done (all acceptance cr
 | # | Milestone | Status | Date | Commit |
 |---|---|---|---|---|
 | — | Kickoff: spec read, CLAUDE.md + docs created, §0.3 asked | ☑ | 2026-11-06 | |
-| M0 | Foundation | ☐ | | |
+| M0 | Foundation | ☑ | 2026-11-06 | see log |
 | M1 | Ingestion | ☐ | | |
 | M2 | Enrichment, clustering, scoring | ☐ | | |
 | M3 | Daily Brief + core UI | ☐ | | |
@@ -28,12 +28,12 @@ Status legend: ☐ not started · ◐ in progress · ☑ done (all acceptance cr
 ## Acceptance criteria
 
 ### M0 Foundation
-- [ ] `make up` (`scripts/dev.py up`) starts everything
-- [ ] `make test` passes in mock mode
-- [ ] login works
-- [ ] `/health` green
-- [ ] an LLM call through the router writes a ledger row
-- [ ] invalid config fails fast with a clear error
+- [x] `make up` (`scripts/dev.py up`) starts everything
+- [x] `make test` passes in mock mode
+- [x] login works
+- [x] `/health` green
+- [x] an LLM call through the router writes a ledger row
+- [x] invalid config fails fast with a clear error
 
 ### M1 Ingestion
 - [ ] ingest is idempotent on recorded fixtures (second run adds 0 items)
@@ -102,4 +102,10 @@ Status legend: ☐ not started · ◐ in progress · ☑ done (all acceptance cr
 - [ ] 7 consecutive days of briefs without manual intervention (time-travel simulation if no live LLM)
 
 ## Log
+- 2026-11-06 — **M0 Foundation done.** Results:
+  - `scripts/dev.py test`: ruff clean, ruff format clean, mypy strict (42 files) clean, pytest **35 passed** (mock mode, Postgres `signal_test`), coverage of signal_core **88%**, vitest 2 passed, eslint + tsc clean.
+  - `scripts/dev.py e2e`: Playwright **2 passed** (desktop + 375 px mobile): bad login shows error, login works, /ops health = ok.
+  - `scripts/dev.py up`: api :8710 + web :3710 both 200, `/health` = ok (db, config, redis, llm=mock). The scheduler fired `continuous_ingest` and `metrics_prompts` through Redis → Arq worker → `runs` (status ok).
+  - Ledger: `test_call_writes_ledger_row_and_validates`; config fail-fast: `tests/unit/test_config.py` (weights sum, bad cron, missing file, unknown key, missing price, bad TZ).
+  - Demo: `python scripts/dev.py mock` → http://localhost:3710 → sign in with SIGNAL_ADMIN_EMAIL/PASSWORD → Ops shows health.
 - 2026-11-06 — Kickoff. Spec converted to docs/SPEC.md. Verified Claude CLI headless flags and terms (ADR-001).

@@ -1,0 +1,54 @@
+# Compose project "signal". Infra services always; app services under profile "full" (Linux/VPS deploy, ADR-002).
+name: signal
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: signal
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-signal}
+      POSTGRES_DB: signal
+    ports: ["${SIGNAL_DB_PORT:-5442}:5432"]
+    volumes: ["signal_pg:/var/lib/postgresql/data", "./scripts/db-init:/docker-entrypoint-initdb.d:ro"]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U signal"], interval: 5s, retries: 20}
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    ports: ["${SIGNAL_REDIS_PORT:-6390}:6379"]
+    volumes: ["signal_redis:/data"]
+    healthcheck: {test: ["CMD", "redis-cli", "ping"], interval: 5s, retries: 20}
+    restart: unless-stopped
+  api:
+    profiles: [full]
+    build: {context: ., dockerfile: deploy/python.Dockerfile}
+    command: uv run uvicorn signal_api.main:app --host 0.0.0.0 --port 8710
+    env_file: .env
+    environment: {SIGNAL_DATABASE_URL: "postgresql+asyncpg://signal:${POSTGRES_PASSWORD:-signal}@db:5432/signal", SIGNAL_REDIS_URL: "redis://redis:6379/0"}
+    depends_on: {db: {condition: service_healthy}, redis: {condition: service_healthy}}
+    ports: ["8710:8710"]
+  worker:
+    profiles: [full]
+    build: {context: ., dockerfile: deploy/python.Dockerfile}
+    command: uv run arq signal_worker.main.WorkerSettings
+    env_file: .env
+    environment: {SIGNAL_DATABASE_URL: "postgresql+asyncpg://signal:${POSTGRES_PASSWORD:-signal}@db:5432/signal", SIGNAL_REDIS_URL: "redis://redis:6379/0"}
+    depends_on: {db: {condition: service_healthy}, redis: {condition: service_healthy}}
+    volumes: ["./data:/app/data"]
+  scheduler:
+    profiles: [full]
+    build: {context: ., dockerfile: deploy/python.Dockerfile}
+    command: uv run python -m signal_scheduler.main
+    env_file: .env
+    environment: {SIGNAL_DATABASE_URL: "postgresql+asyncpg://signal:${POSTGRES_PASSWORD:-signal}@db:5432/signal", SIGNAL_REDIS_URL: "redis://redis:6379/0"}
+    depends_on: {db: {condition: service_healthy}, redis: {condition: service_healthy}}
+  web:
+    profiles: [full]
+    build: {context: ., dockerfile: deploy/web.Dockerfile}
+    environment: {SIGNAL_API_URL: "http://api:8710"}
+    ports: ["3710:3710"]
+    depends_on: [api]
+  caddy:
+    profiles: [vps]
+    image: caddy:2-alpine
+    ports: ["80:80", "443:443"]
+    volumes: ["./deploy/Caddyfile:/etc/caddy/Caddyfile:ro", "signal_caddy:/data"]
+volumes: {signal_pg: {}, signal_redis: {}, signal_caddy: {}}

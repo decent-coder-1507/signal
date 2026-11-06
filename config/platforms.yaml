@@ -1,0 +1,21 @@
+# Platform defaults (§7.6, §7.10). Verify limits at build time; see docs/DECISIONS.md.
+linkedin:
+  post_chars_max: 3000
+  composer_url: "https://www.linkedin.com/feed/?shareActive=true"
+  best_times: ["Tue 09:00", "Wed 09:00", "Thu 09:00"]
+  publish_api: false
+x:
+  post_chars_max: 280
+  composer_url: "https://x.com/compose/post"
+  best_times: ["Mon 19:00", "Wed 19:00", "Fri 12:00"]
+  publish_api: false
+instagram:
+  carousel_max_slides: 20
+  caption_chars_max: 2200
+  hashtags_max: 30
+  publish_api: false
+  best_times: ["Sat 11:00"]
+hashnode:
+  graphql_endpoint: "https://gql.hashnode.com"
+  publish_api: false        # flag; also requires SIGNAL_HASHNODE_TOKEN and explicit per-post approval
+ai_disclosure: {linkedin: false, x: false, instagram: false, hashnode: false}

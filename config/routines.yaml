@@ -1,0 +1,12 @@
+routines:
+  - {name: continuous_ingest, cron: "*/30 * * * *", steps: [ingest_due_sources], channels: []}
+  - {name: daily_brief, cron: "30 7 * * 1-5", steps: [score, insights, lab_spark, gym_item, assemble_brief], channels: [app, telegram]}
+  - {name: weekend_brief, cron: "0 9 * * 6,0", params: {max_stories: 5}, steps: [score, insights, assemble_brief], channels: [app, telegram]}
+  - {name: cards_nudge, cron: "0 13 * * *", steps: [cards_due_check], channels: [telegram]}
+  - {name: weekly_review, cron: "0 10 * * 0", steps: [weekly_recap, content_plan, idea_of_week, learn_next, quiz, metrics_summary], channels: [app, email]}
+  - {name: monthly_review, cron: "0 10 1 * *", steps: [state_of_tech, moat_radar, content_learnings, idea_pipeline_review, skill_progress, tuning_proposals, cost_report], channels: [app, email]}
+  - {name: quarterly_reset, cron: "0 10 1 1,4,7,10 *", steps: [quarterly_reset], channels: [app]}
+  - {name: nightly_maintenance, cron: "30 2 * * *", steps: [cluster_merge, retrain_preferences, source_health, backup, evals_sample], channels: []}
+  - {name: metrics_prompts, cron: "0 * * * *", steps: [metrics_prompts], channels: [telegram]}
+notifications: {max_per_day: 4, quiet_hours: ["22:30", "07:00"]}
+habit: {streak_freezes_per_month: 2}

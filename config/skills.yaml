@@ -1,0 +1,60 @@
+# GYM skill taxonomy seed (§9.1): domain → skill → sub-skill.
+domains:
+  - name: Software fundamentals
+    durability: fundamental
+    children:
+      - {name: Data structures & algorithms, durability: fundamental}
+      - {name: System design, durability: fundamental}
+      - {name: Distributed systems, durability: fundamental}
+      - {name: Databases, durability: fundamental}
+      - {name: Networking, durability: fundamental}
+      - {name: Concurrency, durability: fundamental}
+      - {name: Testing, durability: fundamental}
+      - {name: Security, durability: fundamental}
+  - name: Backend & cloud
+    durability: evolving
+    children:
+      - {name: APIs, durability: fundamental}
+      - {name: Queues, durability: fundamental}
+      - {name: Caching, durability: fundamental}
+      - {name: Observability, durability: evolving}
+      - {name: Containers, durability: evolving}
+      - {name: Infrastructure as code, durability: evolving}
+      - {name: Cloud cost, durability: evolving}
+  - name: AI engineering
+    durability: evolving
+    children:
+      - name: LLM fundamentals
+        durability: fundamental
+        children:
+          - {name: Tokenisation, durability: fundamental}
+          - {name: Attention, durability: fundamental}
+          - {name: Context windows, durability: fundamental}
+          - {name: Sampling, durability: fundamental}
+      - {name: Prompting & context engineering, durability: evolving}
+      - {name: RAG & retrieval, durability: evolving}
+      - {name: Embeddings & vector search, durability: fundamental}
+      - {name: Agents & tool use, durability: evolving}
+      - {name: MCP and protocols, durability: tool-specific}
+      - {name: Evals & testing of LLM apps, durability: fundamental}
+      - {name: Guardrails & safety, durability: evolving}
+      - {name: Structured outputs, durability: evolving}
+      - {name: Cost/latency optimisation, durability: evolving}
+      - {name: Fine-tuning & adapters, durability: evolving}
+      - {name: Inference & serving, durability: evolving}
+      - {name: Multimodal, durability: evolving}
+  - name: ML foundations
+    durability: fundamental
+    children:
+      - {name: Linear algebra, durability: fundamental}
+      - {name: Probability, durability: fundamental}
+      - {name: Optimisation, durability: fundamental}
+      - {name: Training basics, durability: fundamental}
+  - name: Product & career
+    durability: fundamental
+    children:
+      - {name: Writing, durability: fundamental}
+      - {name: Communication, durability: fundamental}
+      - {name: Product sense, durability: fundamental}
+      - {name: Estimation, durability: fundamental}
+      - {name: Leadership, durability: fundamental}

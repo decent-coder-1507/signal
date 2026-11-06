@@ -1,0 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE DATABASE signal_test;
+\c signal_test
+CREATE EXTENSION IF NOT EXISTS vector;

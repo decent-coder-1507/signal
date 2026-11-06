@@ -1,0 +1,36 @@
+# Interest profile (§19.1). Defaults until the onboarding wizard is completed.
+owner:
+  name: Srijoy Paul
+  role: "Software & AI engineer"   # fill: role/title at VANCO
+  company: VANCO
+  timezone: Asia/Kolkata
+  goals:
+    - "Become a top-tier AI engineer who ships production LLM systems"
+    - "Build a respected public voice on practical AI engineering"
+    - "Ship one POC every two weeks"
+  stack: [python, typescript, fastapi, nextjs, postgres, docker, aws]
+  vanco_context: ""                # optional, sensitive
+  confidential_keywords: []        # VANCO-confidential terms the safety check must flag
+topics:
+  core:
+    - {name: ai-engineering, weight: 1.0, keywords: [RAG, agents, evals, MCP, tool use, context engineering]}
+    - {name: llm-releases, weight: 0.9, keywords: [model release, open weights, benchmark, LLM]}
+    - {name: ai-coding-tools, weight: 0.9, keywords: [coding agent, Copilot, Claude Code, Cursor, code generation]}
+    - {name: inference-serving, weight: 0.7, keywords: [inference, vLLM, serving, quantization, GPU kernels]}
+    - {name: backend-distributed-systems, weight: 0.7, keywords: [distributed systems, database, Postgres, Kafka, microservices]}
+    - {name: devops-cloud, weight: 0.5, keywords: [Kubernetes, AWS, cloud, CI/CD, observability]}
+    - {name: ai-security, weight: 0.6, keywords: [prompt injection, jailbreak, AI security, supply chain]}
+  adjacent:
+    - {name: semiconductors-gpus, weight: 0.5, keywords: [GPU, NVIDIA, chips, TSMC]}
+    - {name: ai-policy-regulation, weight: 0.5, keywords: [AI Act, regulation, policy, MeitY], regions: [global, india, eu, us]}
+    - {name: funding-mna, weight: 0.4, keywords: [funding, raises, acquisition, valuation]}
+    - {name: india-tech-ecosystem, weight: 0.6, keywords: [India, Bengaluru, startup, Indian]}
+    - {name: engineering-job-market, weight: 0.5, keywords: [layoffs, hiring, engineers, jobs]}
+  blocked_entities: []
+  blocked_keywords: [crypto price prediction, celebrity]
+brief:
+  max_stories: 7
+  quick_hits: 8
+  min_score: 0.55
+  catchup_after_days: 2
+  catchup_max_stories: 10

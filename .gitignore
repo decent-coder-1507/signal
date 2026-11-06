@@ -16,3 +16,5 @@ data/
 backups/
 .claude/worktrees/
 .claude-flow/
+test-results/
+playwright-report/

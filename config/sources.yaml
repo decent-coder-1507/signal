@@ -1,0 +1,4 @@
+# Starter source pack (§6.2, §19.2). Expanded and URL-verified in M1.
+sources:
+  - {type: rss, name: Simon Willison, url: "https://simonwillison.net/atom/everything/", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 60m}
+  - {type: hn, name: Hacker News Top, endpoint: topstories, min_points: 80, tier: 3, ring: core, fetch_every: 30m}

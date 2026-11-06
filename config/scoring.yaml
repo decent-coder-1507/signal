@@ -1,0 +1,13 @@
+weights: {relevance: 0.25, impact: 0.15, signal: 0.15, novelty: 0.10,
+          credibility: 0.10, durability: 0.10, actionability: 0.10, learned: 0.05}
+prefilter_min: 0.25
+dedupe: {simhash_max_distance: 3, embedding_cosine: 0.95, window_hours: 72}
+cluster: {join_threshold: 0.82, merge_threshold: 0.88, window_days: 7, min_entity_overlap: 1}
+adjacent_tech_relevance_min: 0.6
+mmr_lambda: 0.7
+novelty_window_days: 14
+insight_top_n: 25
+llm_relevance_top_n: 60
+exploration_slot: true
+feedback_max_weight_shift_per_month: 0.2
+lab_spark_threshold: 6.5
