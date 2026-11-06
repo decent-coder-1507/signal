@@ -11,6 +11,9 @@ os.environ["SIGNAL_USE_REDIS_QUEUE"] = "false"
 os.environ["SIGNAL_ADMIN_EMAIL"] = "owner@test.local"
 os.environ["SIGNAL_ADMIN_PASSWORD"] = "correct horse battery"
 os.environ["SIGNAL_SECRET_KEY"] = "test-secret"
+os.environ["SIGNAL_SSRF_GUARD"] = (
+    "false"  # respx-mocked .example hosts do not resolve; guard has its own tests
+)
 
 import asyncio
 from collections.abc import AsyncIterator

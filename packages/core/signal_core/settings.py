@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     imap_url: str | None = Field(default=None, repr=False)
     backup_s3_url: str | None = Field(default=None, repr=False)
     http_concurrency: int = 6
+    ssrf_guard: bool = True  # block fetches to private/loopback/link-local hosts (ADR-017)
     http_timeout_s: float = 45.0
 
     @property

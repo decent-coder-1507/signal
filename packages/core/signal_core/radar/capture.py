@@ -58,6 +58,10 @@ async def capture_url(
         return existing
     html, fetched_title = "", None
     client = http or PoliteClient(retries=0, timeout_s=4.0)
+    if client.guard:
+        from signal_core.sources.http import assert_public_url
+
+        await assert_public_url(url)  # raises BlockedURL → 422 at the API
     try:
         r = await client.get(url, timeout=4.0)
         if r.status_code == 200 and "html" in r.headers.get("content-type", "html"):

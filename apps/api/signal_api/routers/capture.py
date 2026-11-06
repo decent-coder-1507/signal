@@ -61,7 +61,12 @@ async def capture(
     elif url:
         if not url.startswith(("http://", "https://")):
             raise HTTPException(422, "url must be http(s)")
-        item = await capture_url(db, url, title=title, note=note, intent=intent)
+        from signal_core.sources.http import BlockedURL
+
+        try:
+            item = await capture_url(db, url, title=title, note=note, intent=intent)
+        except BlockedURL as e:
+            raise HTTPException(422, str(e)) from e
     elif text and text.strip():
         item = await capture_text(db, text, title=title, intent=intent)
     else:

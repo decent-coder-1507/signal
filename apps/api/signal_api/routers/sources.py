@@ -58,8 +58,21 @@ class SourceIn(BaseModel):
     terms_note: str = ""
 
 
+async def _validate_url(url: str | None) -> None:
+    from signal_core.settings import get_settings
+    from signal_core.sources.http import BlockedURL, assert_public_url
+
+    if url is None or not get_settings().ssrf_guard:
+        return
+    try:
+        await assert_public_url(url)
+    except BlockedURL as e:
+        raise HTTPException(422, str(e)) from e
+
+
 @router.post("/sources", status_code=201)
 async def create_source(body: SourceIn, _: CurrentUser, db: DB) -> dict[str, Any]:
+    await _validate_url(body.url)
     if (await db.execute(select(Source).where(Source.name == body.name))).scalar_one_or_none():
         raise HTTPException(409, "a source with that name exists")
     try:
@@ -99,6 +112,7 @@ class SourcePatch(BaseModel):
 @router.put("/sources/{sid}")
 async def update_source(sid: uuid.UUID, body: SourcePatch, _: CurrentUser, db: DB) -> dict[str, Any]:
     s = await _get(db, sid)
+    await _validate_url(body.url)
     for k, v in body.model_dump(exclude_none=True).items():
         setattr(s, k, v)
     if body.enabled:  # re-enabling clears the "fix or disable" flag
