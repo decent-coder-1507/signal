@@ -13,19 +13,20 @@ owner:
   confidential_keywords: []        # VANCO-confidential terms the safety check must flag
 topics:
   core:
-    - {name: ai-engineering, weight: 1.0, keywords: [RAG, agents, evals, MCP, tool use, context engineering]}
-    - {name: llm-releases, weight: 0.9, keywords: [model release, open weights, benchmark, LLM]}
-    - {name: ai-coding-tools, weight: 0.9, keywords: [coding agent, Copilot, Claude Code, Cursor, code generation]}
-    - {name: inference-serving, weight: 0.7, keywords: [inference, vLLM, serving, quantization, GPU kernels]}
-    - {name: backend-distributed-systems, weight: 0.7, keywords: [distributed systems, database, Postgres, Kafka, microservices]}
-    - {name: devops-cloud, weight: 0.5, keywords: [Kubernetes, AWS, cloud, CI/CD, observability]}
-    - {name: ai-security, weight: 0.6, keywords: [prompt injection, jailbreak, AI security, supply chain]}
+    # keywords match case-insensitively and tolerate plurals (agent → agents)
+    - {name: ai-engineering, weight: 1.0, keywords: [RAG, retrieval, retrieval-augmented generation, agent, eval, evaluation, MCP, protocol, tool use, tool calling, context engineering, prompt, embedding, vector search, structured output]}
+    - {name: llm-releases, weight: 0.9, keywords: [model release, open weights, open-weights, benchmark, LLM, language model, SWE-bench, context window, model card, fine-tuning]}
+    - {name: ai-coding-tools, weight: 0.9, keywords: [coding agent, code generation, Copilot, Claude Code, Cursor, IDE, developer tool, code review]}
+    - {name: inference-serving, weight: 0.7, keywords: [inference, serving, vLLM, quantization, quantised, KV-cache, throughput, speculative decoding, GPU kernel]}
+    - {name: backend-distributed-systems, weight: 0.7, keywords: [distributed system, database, Postgres, Kafka, microservice, HNSW, hybrid search, BM25, scalability]}
+    - {name: devops-cloud, weight: 0.5, keywords: [Kubernetes, AWS, cloud, CI/CD, observability, Docker, Terraform]}
+    - {name: ai-security, weight: 0.6, keywords: [prompt injection, jailbreak, AI security, supply chain, sandbox]}
   adjacent:
-    - {name: semiconductors-gpus, weight: 0.5, keywords: [GPU, NVIDIA, chips, TSMC]}
-    - {name: ai-policy-regulation, weight: 0.5, keywords: [AI Act, regulation, policy, MeitY], regions: [global, india, eu, us]}
-    - {name: funding-mna, weight: 0.4, keywords: [funding, raises, acquisition, valuation]}
-    - {name: india-tech-ecosystem, weight: 0.6, keywords: [India, Bengaluru, startup, Indian]}
-    - {name: engineering-job-market, weight: 0.5, keywords: [layoffs, hiring, engineers, jobs]}
+    - {name: semiconductors-gpus, weight: 0.5, keywords: [GPU, NVIDIA, chip, accelerator, TSMC, semiconductor]}
+    - {name: ai-policy-regulation, weight: 0.5, keywords: [AI Act, regulation, policy, guideline, draft rule, MeitY, regulator], regions: [global, india, eu, us]}
+    - {name: funding-mna, weight: 0.4, keywords: [funding, raise, raised, Series A, Series B, acquisition, valuation]}
+    - {name: india-tech-ecosystem, weight: 0.6, keywords: [India, Indian, Bengaluru, Bangalore, startup]}
+    - {name: engineering-job-market, weight: 0.5, keywords: [layoff, hiring, engineer, job, survey]}
   blocked_entities: []
   blocked_keywords: [crypto price prediction, celebrity]
 brief:

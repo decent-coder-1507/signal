@@ -3,6 +3,13 @@ weights: {relevance: 0.25, impact: 0.15, signal: 0.15, novelty: 0.10,
 prefilter_min: 0.25
 dedupe: {simhash_max_distance: 3, embedding_cosine: 0.95, window_hours: 72}
 cluster: {join_threshold: 0.82, merge_threshold: 0.88, window_days: 7, min_entity_overlap: 1}
+# Thresholds depend on the embedding model (ADR-015). Calibrated on the fixture corpus 2026-11-06:
+#   bge-small (fastembed): same-event pairs ≥ 0.82, different events p95 0.67 → spec defaults hold.
+#   mock (hashed bag of words): same-event median 0.72 / min 0.37, different events p95 0.16.
+cluster_overrides:
+  mock: {join_threshold: 0.42, merge_threshold: 0.6}
+# Map raw cosine(story centroid, profile vector) onto 0–1 relevance per embedder: [cos_at_0, cos_at_1].
+relevance_cosine_scale: {fastembed: [0.45, 0.80], mock: [0.0, 0.45]}
 adjacent_tech_relevance_min: 0.6
 mmr_lambda: 0.7
 novelty_window_days: 14

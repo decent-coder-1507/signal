@@ -33,7 +33,7 @@ def utcnow() -> datetime:
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING)
-    type_annotation_map = {dict[str, Any]: JSONB, list[Any]: JSONB}  # noqa: RUF012
+    type_annotation_map = {dict[str, Any]: JSONB, list[Any]: JSONB}
 
 
 class Row(Base):

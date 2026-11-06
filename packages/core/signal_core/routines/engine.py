@@ -56,6 +56,7 @@ def load_step_modules() -> None:
 
     for mod in (
         "signal_core.radar.steps",
+        "signal_core.radar.jobs",
         "signal_core.brief.steps",
         "signal_core.lab.steps",
         "signal_core.gym.steps",

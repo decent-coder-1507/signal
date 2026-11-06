@@ -46,6 +46,15 @@ class Settings(BaseSettings):
     email_from: str = "signal@localhost"
     github_token: str | None = Field(default=None, repr=False)
     hashnode_token: str | None = Field(default=None, repr=False)
+    reddit_client_id: str | None = Field(default=None, repr=False)
+    reddit_client_secret: str | None = Field(default=None, repr=False)
+    producthunt_token: str | None = Field(default=None, repr=False)
+    x_bearer_token: str | None = Field(default=None, repr=False)
+    youtube_api_key: str | None = Field(default=None, repr=False)
+    imap_url: str | None = Field(default=None, repr=False)
+    backup_s3_url: str | None = Field(default=None, repr=False)
+    http_concurrency: int = 6
+    http_timeout_s: float = 45.0
 
     @property
     def is_mock(self) -> bool:

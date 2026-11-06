@@ -1,4 +1,69 @@
-# Starter source pack (§6.2, §19.2). Expanded and URL-verified in M1.
+# Starter source pack (§6.2, §19.2). URLs verified by scripts/verify_sources.py — see docs/DECISIONS.md ADR-012.
+# tier: 1 primary/official · 2 high-quality analysis · 3 aggregator/community.  fetch_every: 30m | 6h | 1d
 sources:
+  # ---- Official AI labs / platforms (tier 1) ----
+  - {type: rss, name: OpenAI News, url: "https://openai.com/news/rss.xml", tier: 1, ring: core, topics: [llm-releases], fetch_every: 60m}
+  - {type: rss, name: Anthropic News, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml", tier: 2, ring: core, topics: [llm-releases], fetch_every: 60m, terms_note: "anthropic.com has no official RSS; community mirror of anthropic.com/news — primary-source tracing links to the official page"}
+  - {type: rss, name: Google DeepMind Blog, url: "https://deepmind.google/blog/rss.xml", tier: 1, ring: core, topics: [llm-releases], fetch_every: 2h}
+  - {type: rss, name: Google AI Blog, url: "https://blog.google/technology/ai/rss/", tier: 1, ring: core, topics: [llm-releases], fetch_every: 2h}
+  - {type: rss, name: Google Research Blog, url: "https://research.google/blog/rss/", tier: 1, ring: core, topics: [ai-engineering], fetch_every: 6h}
+  - {type: rss, name: Google Developers Blog, url: "https://developers.googleblog.com/feeds/posts/default", tier: 1, ring: core, topics: [ai-coding-tools], fetch_every: 6h}
+  - {type: rss, name: Microsoft Research, url: "https://www.microsoft.com/en-us/research/feed/", tier: 1, ring: core, topics: [ai-engineering], fetch_every: 6h}
+  - {type: rss, name: AWS Machine Learning Blog, url: "https://aws.amazon.com/blogs/machine-learning/feed/", tier: 1, ring: core, topics: [devops-cloud, ai-engineering], fetch_every: 6h}
+  - {type: rss, name: Hugging Face Blog, url: "https://huggingface.co/blog/feed.xml", tier: 1, ring: core, topics: [llm-releases], fetch_every: 2h}
+  - {type: rss, name: NVIDIA Technical Blog, url: "https://developer.nvidia.com/blog/feed/", tier: 1, ring: core, topics: [inference-serving], fetch_every: 6h}
+  - {type: rss, name: Meta Engineering, url: "https://engineering.fb.com/feed/", tier: 1, ring: core, topics: [backend-distributed-systems], fetch_every: 6h}
+  - {type: rss, name: Vercel Blog, url: "https://vercel.com/atom", tier: 1, ring: core, topics: [ai-coding-tools], fetch_every: 6h}
+  - {type: rss, name: Cloudflare Blog, url: "https://blog.cloudflare.com/rss/", tier: 1, ring: core, topics: [devops-cloud], fetch_every: 2h}
+  - {type: rss, name: GitHub Blog, url: "https://github.blog/feed/", tier: 1, ring: core, topics: [ai-coding-tools], fetch_every: 2h}
+  - {type: rss, name: Kubernetes Blog, url: "https://kubernetes.io/feed.xml", tier: 1, ring: core, topics: [devops-cloud], fetch_every: 1d}
+  - {type: rss, name: PostgreSQL News, url: "https://www.postgresql.org/news.rss", tier: 1, ring: core, topics: [backend-distributed-systems], fetch_every: 1d}
+  - {type: rss, name: Python Insider, url: "https://blog.python.org/feeds/posts/default", tier: 1, ring: core, topics: [backend-distributed-systems], fetch_every: 1d}
+  # ---- Analysis (tier 2) ----
   - {type: rss, name: Simon Willison, url: "https://simonwillison.net/atom/everything/", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 60m}
-  - {type: hn, name: Hacker News Top, endpoint: topstories, min_points: 80, tier: 3, ring: core, fetch_every: 30m}
+  - {type: rss, name: Latent Space, url: "https://www.latent.space/feed", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 6h}
+  - {type: rss, name: Import AI, url: "https://importai.substack.com/feed", tier: 2, ring: core, topics: [llm-releases], fetch_every: 6h}
+  - {type: rss, name: Interconnects, url: "https://www.interconnects.ai/feed", tier: 2, ring: core, topics: [llm-releases], fetch_every: 6h}
+  - {type: rss, name: The Pragmatic Engineer, url: "https://newsletter.pragmaticengineer.com/feed", tier: 2, ring: core, topics: [engineering-job-market, ai-coding-tools], fetch_every: 6h, terms_note: "free posts only"}
+  - {type: rss, name: Ahead of AI, url: "https://magazine.sebastianraschka.com/feed", tier: 2, ring: core, topics: [llm-releases], fetch_every: 6h}
+  - {type: rss, name: Chip Huyen, url: "https://huyenchip.com/feed.xml", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 1d}
+  - {type: rss, name: Lilian Weng, url: "https://lilianweng.github.io/index.xml", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 1d}
+  - {type: rss, name: Eugene Yan, url: "https://eugeneyan.com/rss/", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 1d}
+  - {type: rss, name: Hamel Husain, url: "https://hamel.dev/index.xml", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 1d}
+  - {type: rss, name: Martin Fowler, url: "https://martinfowler.com/feed.atom", tier: 2, ring: core, topics: [backend-distributed-systems], fetch_every: 1d}
+  - {type: rss, name: InfoQ, url: "https://feed.infoq.com/", tier: 2, ring: core, topics: [backend-distributed-systems], fetch_every: 6h}
+  - {type: rss, name: Netflix Tech Blog, url: "https://netflixtechblog.com/feed", tier: 2, ring: core, topics: [backend-distributed-systems], fetch_every: 1d}
+  - {type: rss, name: Stack Overflow Blog, url: "https://stackoverflow.blog/feed/", tier: 2, ring: core, topics: [ai-coding-tools], fetch_every: 1d}
+  - {type: rss, name: MIT Technology Review AI, url: "https://www.technologyreview.com/topic/artificial-intelligence/feed", tier: 2, ring: core, topics: [llm-releases], fetch_every: 6h}
+  - {type: rss, name: SemiAnalysis, url: "https://newsletter.semianalysis.com/feed", tier: 2, ring: adjacent, topics: [semiconductors-gpus], fetch_every: 1d}
+  # ---- News (tier 2-3) ----
+  - {type: rss, name: TechCrunch AI, url: "https://techcrunch.com/category/artificial-intelligence/feed/", tier: 2, ring: core, topics: [llm-releases, funding-mna], fetch_every: 60m}
+  - {type: rss, name: The Verge AI, url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", tier: 3, ring: core, topics: [llm-releases], fetch_every: 60m}
+  - {type: rss, name: Ars Technica, url: "https://feeds.arstechnica.com/arstechnica/technology-lab", tier: 2, ring: core, topics: [llm-releases], fetch_every: 2h}
+  - {type: rss, name: Techmeme, url: "https://www.techmeme.com/feed.xml", tier: 3, ring: core, topics: [llm-releases, funding-mna], fetch_every: 60m}
+  - {type: rss, name: The Register AI, url: "https://www.theregister.com/software/ai_ml/headlines.atom", tier: 2, ring: core, topics: [llm-releases], fetch_every: 2h}
+  - {type: rss, name: Lobsters, url: "https://lobste.rs/rss", tier: 3, ring: core, topics: [backend-distributed-systems, ai-coding-tools], fetch_every: 2h}
+  - {type: rss, name: MarkTechPost, url: "https://www.marktechpost.com/feed/", tier: 3, ring: core, topics: [llm-releases], fetch_every: 6h}
+  # ---- India (adjacent) ----
+  - {type: rss, name: Inc42, url: "https://inc42.com/feed/", tier: 2, ring: adjacent, topics: [india-tech-ecosystem, funding-mna], fetch_every: 2h}
+  - {type: rss, name: YourStory, url: "https://yourstory.com/feed", tier: 3, ring: adjacent, topics: [india-tech-ecosystem], fetch_every: 2h}
+  - {type: rss, name: Economic Times Tech, url: "https://economictimes.indiatimes.com/tech/rssfeeds/13357270.cms", tier: 2, ring: adjacent, topics: [india-tech-ecosystem, ai-policy-regulation], fetch_every: 2h}
+  - {type: rss, name: Analytics India Magazine, url: "https://analyticsindiamag.com/feed/", tier: 3, ring: adjacent, topics: [india-tech-ecosystem], fetch_every: 2h}
+  - {type: rss, name: MediaNama, url: "https://www.medianama.com/feed/", tier: 2, ring: adjacent, topics: [ai-policy-regulation, india-tech-ecosystem], fetch_every: 2h}
+  # ---- Podcasts / video ----
+  - {type: podcast, name: Practical AI, url: "https://changelog.com/practicalai/feed", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 1d}
+  - {type: youtube, name: Andrej Karpathy (YouTube), url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 1d, terms_note: "summaries from description; transcripts only where permitted"}
+  # ---- APIs ----
+  - {type: hn, name: Hacker News Top, endpoint: topstories, min_points: 80, limit: 200, tier: 3, ring: core, fetch_every: 30m}
+  - {type: hn, name: Hacker News Best, endpoint: beststories, min_points: 150, limit: 200, tier: 3, ring: core, fetch_every: 2h}
+  - {type: arxiv, name: arXiv cs.CL/LG/AI/SE/IR, categories: [cs.CL, cs.LG, cs.AI, cs.SE, cs.IR], max_per_day: 300, tier: 1, ring: core, topics: [ai-engineering], fetch_every: 6h, terms_note: "arXiv API: ≤1 request / 3 s"}
+  - {type: hf, name: HF Daily Papers, endpoint: daily_papers, tier: 2, ring: core, topics: [llm-releases], fetch_every: 3h}
+  - {type: hf, name: HF Trending Models, endpoint: trending_models, tier: 2, ring: core, topics: [llm-releases], fetch_every: 6h}
+  - {type: github, name: Watched releases, repos: ["anthropics/claude-code", "modelcontextprotocol/modelcontextprotocol", "vllm-project/vllm", "ollama/ollama", "langchain-ai/langgraph", "openai/openai-agents-python", "pydantic/pydantic-ai", "huggingface/transformers", "fastapi/fastapi", "vercel/next.js", "pgvector/pgvector", "ggml-org/llama.cpp"], tier: 1, ring: core, topics: [ai-coding-tools, inference-serving], fetch_every: 3h, terms_note: "releases.atom feeds (no API quota)"}
+  - {type: github_trending, name: GitHub Trending, languages: [python, typescript], since: daily, tier: 3, ring: core, topics: [ai-engineering], fetch_every: 12h, terms_note: "HTML, polite: 1 request per language"}
+  # ---- Behind flags / credentials (disabled by default) ----
+  - {type: reddit, name: Reddit AI & dev, subreddits: [LocalLLaMA, MachineLearning, ExperiencedDevs, programming, developersIndia], tier: 3, ring: core, enabled: false, fetch_every: 2h, terms_note: "official API with app credentials only"}
+  - {type: producthunt, name: Product Hunt, tier: 3, ring: core, topics: [ai-coding-tools], enabled: false, fetch_every: 1d, terms_note: "API token required"}
+  - {type: x, name: X lists, enabled: false, tier: 3, ring: core, fetch_every: 2h, terms_note: "official API only; paid; default off — forward to Telegram instead"}
+  - {type: email_in, name: Newsletters inbox, enabled: false, tier: 2, ring: core, fetch_every: 30m, terms_note: "IMAP via SIGNAL_IMAP_URL"}
+  - {type: capture, name: Manual capture, tier: 2, ring: core, fetch_every: 1d}

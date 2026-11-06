@@ -165,6 +165,8 @@ class ScoringCfg(Strict):
     prefilter_min: float = Field(0.25, ge=0, le=1)
     dedupe: DedupeCfg = DedupeCfg()
     cluster: ClusterCfg = ClusterCfg()
+    cluster_overrides: dict[str, dict[str, float]] = {}
+    relevance_cosine_scale: dict[str, tuple[float, float]] = {"fastembed": (0.45, 0.8), "mock": (0.0, 0.45)}
     adjacent_tech_relevance_min: float = 0.6
     mmr_lambda: float = Field(0.7, ge=0, le=1)
     novelty_window_days: int = 14
@@ -173,6 +175,12 @@ class ScoringCfg(Strict):
     exploration_slot: bool = True
     feedback_max_weight_shift_per_month: float = 0.2
     lab_spark_threshold: float = 6.5
+
+    def cluster_for(self, embedder: str) -> ClusterCfg:
+        return self.cluster.model_copy(update=self.cluster_overrides.get(embedder, {}))
+
+    def relevance_scale(self, embedder: str) -> tuple[float, float]:
+        return tuple(self.relevance_cosine_scale.get(embedder, (0.0, 1.0)))  # type: ignore[return-value]
 
 
 # ---------- routines.yaml ----------

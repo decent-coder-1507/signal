@@ -114,7 +114,10 @@ class FastEmbedProvider:
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         model = self._load()
-        vecs = await asyncio.to_thread(lambda: [v.tolist() for v in model.embed(texts)])
+        # Small batches + clipped text: ONNX attention memory grows with batch × sequence length (a 256-item
+        # default batch of long articles tried to allocate 3 GB on this machine).
+        clipped = [t[:1200] for t in texts]
+        vecs = await asyncio.to_thread(lambda: [v.tolist() for v in model.embed(clipped, batch_size=16)])
         return vecs
 
 

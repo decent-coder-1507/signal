@@ -39,3 +39,33 @@ The sandbox blocked the Playwright browser download (cdn.playwright.dev ENOTFOUN
 
 ## ADR-011 · Ledger writes in their own transaction (2026-11-06)
 `llm_calls` rows are committed independently of the caller's transaction, so failed or blocked calls still count toward the budget even when the caller rolls back.
+
+## ADR-012 · Starter source pack verified live (2026-11-06)
+`scripts/verify_sources.py` probed all 59 sources in `config/sources.yaml`. **54 enabled sources returned entries**; 5 are credential/flag-gated (Reddit, Product Hunt, X, IMAP, capture) and disabled by default. Changes from the spec's examples after verification:
+- **Anthropic has no official RSS** (`/rss.xml`, `/news/rss.xml`, `/news/feed` all 404). Using the community mirror `Olshansk/rss-feeds` (tier 2, noted in `terms_note`). Primary-source tracing links to anthropic.com.
+- LangChain blog (no entries at any feed URL), Mistral and Meta AI (no feeds) were dropped. Moneycontrol returns 503 to non-browser clients, so it was replaced by Analytics India Magazine and MediaNama.
+- Karpathy YouTube channel id corrected to `UCYO_jab_esuFRV4b17AJtAw` (taken from the channel page).
+- GitHub watched-repo releases use public `releases.atom` feeds (no API quota). GitHub's robots.txt allows `/trending` and `releases.atom`.
+- Network behaviour of this host: ~60 parallel requests cause timeouts and disconnects. The polite client caps global concurrency at 6, with a 45 s timeout, 2 retries, 1 s per-host spacing, 3 s for arXiv (its API terms) and 0.1 s for the HN Firebase API.
+
+## ADR-013 · Ingest pipeline shape (2026-11-06)
+- Fetches run concurrently per source (each in its own transaction). **Dedupe + prefilter run afterwards as one sequential "screening" pass, oldest first**, so every item is compared with committed items from all sources. Doing it inline missed cross-source duplicates.
+- Near-duplicate = SimHash ≤ 3 bits **or** embedding cosine ≥ 0.95 **or** 3-shingle containment ≥ 0.90 among the 5 nearest embedding neighbours. Containment was added because syndicated copies of short feed items change SimHash too much. On the fixture set, same-event rewrites reach 0.84 containment and true copies 1.0.
+- When two sources race to insert the same canonical URL, the loser's signal metadata (HN points, stars) is merged into the winning row.
+- Full-page text extraction is not done at ingest for feed items (the feed body is used). It happens for captures and, from M2, for items that pass the prefilter, which saves thousands of page fetches a day.
+- Mock mode only fetches fixture sources (`params.fixture=true`) through `FixtureTransport`, so mock mode never touches the network.
+- Captures are a user-directed single-page fetch, so robots.txt is not applied (crawlers/feeds still honour it). Captures have a 4 s timeout and always create an item.
+- Prefilter keywords match case-insensitively with plural tolerance. A lone, generic, one-word keyword hit counts half (it stopped "former agents" in a history story from passing).
+
+## ADR-014 · Fictional fixture corpus (2026-11-06)
+Tests and the mock-mode demo use `signal_core.fixtures_corpus`. Every company, product and event in it is fictional (Nimbus AI, Orchid Labs, Kestrel, Tessera, Digital Standards Board…) and all URLs are `.example`. Demo content therefore can never be mistaken for real news, which honours the never-invent-facts rule even in demo mode. Secondary outlets deterministically paraphrase the shared fact sentences (names and numbers verbatim). Twenty syndicated copies provide the dedupe recall set.
+
+## ADR-015 · Scoring, clustering and judgement details (2026-11-06)
+- **One judge call per story.** The spec rates impact and durability with the LLM and relevance with P3. To save calls, P3 `relevance_judge` also returns impact, durability and content/build/learn potentials (balanced tier, top 60 only). The deterministic pass runs first; the judge refines only the top of the list.
+- **Thresholds are per embedding model.** `scoring.yaml` keeps the spec defaults (join 0.82, merge 0.88) for bge-small. Measured on the fixture corpus, same-event pairs score ≥ 0.82 and different events have p95 0.67. The mock embedder gets calibrated overrides (join 0.42, merge 0.60). Relevance maps raw cosine onto 0–1 with a per-embedder `[cos_at_0, cos_at_1]` scale.
+- **Entity compatibility rule for joining.** If both sides name *specific* entities (models, products, repos, papers), they must share one. Otherwise ≥ 1 shared entity is enough, and if either side has none, cosine alone decides. Without this, "Nimbus-4 launch" and "Nimbus-3 price cut" (same company, cosine 0.865 with bge) merged.
+- Enriched entities are kept only if they literally appear in the item (anti-hallucination), and quote spans must be verbatim (`signal_core.truth`). Insight sentences without a resolvable `[item_id]` are dropped. If nothing verifiable survives, an extractive cited summary is stored instead.
+- **Preference model.** L2 logistic regression in numpy (no scikit-learn), retrained after each explicit feedback and nightly. It needs ≥ 6 labelled stories; before that `learned = 0.5`. With the spec's 0.05 weight, feedback moves rankings gently: the acceptance test checks that scores and order change, not that the #1 story falls.
+- **Topic nudges** are bounded to ±20% per calendar month. At a month boundary the previous drift is folded into the base weight (capped 0–2), so learning persists while each month's change stays bounded.
+- Embedding with fastembed uses batch 16 and texts clipped to 1,200 characters. The default batch tried to allocate 3 GB in ONNX attention on this machine.
+- Ingest is two-phase (network fetch with no DB connection held, then short per-source transactions). Holding a session per concurrent fetch exhausted the pool (20 connections) during the live run.
