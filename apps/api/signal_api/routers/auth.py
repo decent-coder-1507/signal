@@ -17,8 +17,10 @@ from signal_core.auth import (
     make_session_token,
     new_api_token,
     new_totp_secret,
+    verify_password,
     verify_totp,
 )
+from signal_core.db.models import User
 from signal_core.settings import get_settings
 
 router = APIRouter(tags=["auth"])
@@ -97,14 +99,31 @@ async def me(user: CurrentUser) -> dict[str, object]:
     }
 
 
-class TotpIn(BaseModel):
+class ReauthIn(BaseModel):
+    password: str
+    current_totp: str | None = None
+
+
+def require_reauth(request: Request, user: User, body: ReauthIn) -> None:
+    """Security-sensitive changes need a browser session (not the API token) plus fresh proof of the
+    password and, when 2FA is already on, the current authenticator code."""
+    if getattr(request.state, "via_token", False):
+        raise HTTPException(403, "session required (API token cannot change credentials)")
+    if not verify_password(user.password_hash, body.password):
+        raise HTTPException(403, "password incorrect")
+    if user.totp_secret and not (body.current_totp and verify_totp(user.totp_secret, body.current_totp)):
+        raise HTTPException(403, "current authenticator code required")
+
+
+class TotpIn(ReauthIn):
     secret: str | None = None
     code: str | None = None
 
 
 @router.post("/auth/totp/setup")
-async def totp_setup(body: TotpIn, user: CurrentUser, db: DB) -> dict[str, object]:
-    """Step 1 (no body): returns a new secret + otpauth URI. Step 2: send secret + code to enable."""
+async def totp_setup(body: TotpIn, request: Request, user: CurrentUser, db: DB) -> dict[str, object]:
+    """Step 1 (password only): returns a new secret + otpauth URI. Step 2: send secret + code to enable."""
+    require_reauth(request, user, body)
     if not body.secret:
         secret = new_totp_secret()
         uri = pyotp.TOTP(secret).provisioning_uri(name=user.email, issuer_name="SIGNAL")
@@ -117,8 +136,9 @@ async def totp_setup(body: TotpIn, user: CurrentUser, db: DB) -> dict[str, objec
 
 
 @router.post("/auth/api-token")
-async def rotate_api_token(user: CurrentUser, db: DB) -> dict[str, str]:
+async def rotate_api_token(body: ReauthIn, request: Request, user: CurrentUser, db: DB) -> dict[str, str]:
     """Create or rotate the API token used by the bookmarklet / Telegram bridge. Shown once."""
+    require_reauth(request, user, body)
     token = new_api_token()
     user.api_token_hash = hash_api_token(token)
     await db.flush()
