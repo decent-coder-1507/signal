@@ -892,3 +892,131 @@ Pass rate, latency, cost per task.
 |------|----------|-----------|-------|
 """
     return {"brief_md": brief, "claude_md": claude, "experiment_md": exp}
+
+
+# ---------------- GYM / MOAT ----------------
+def _words5(t: str) -> set[str]:
+    return set(re.findall(r"[a-z]{4,}", t.lower()))
+
+
+@mock_generator("learn_next")
+def learn_next(inputs: dict[str, Any]) -> dict[str, Any]:
+    stories = inputs.get("stories", [])
+    res = inputs.get("resources", [])
+    items = []
+    for c in inputs.get("candidates", [])[:3]:
+        rel = [s["id"] for s in stories if _words5(c["name"]) & _words5(s["title"])][:2]
+        why = (
+            f"{c['name']} is a {c['durability']} skill with a gap of {c['target'] - c['current']} levels"
+            + (
+                " and it shows up in this week's news " + " ".join(f"[{r}]" for r in rel)
+                if rel
+                else "; this is a fundamentals gap, not driven by news"
+            )
+            + "."
+        )
+        items.append(
+            {
+                "skill": c["name"],
+                "why": why,
+                "evidence": rel,
+                "ignore_instead": "New wrapper libraries around the same idea",
+                "plan": {
+                    "explainer_topic": c["name"],
+                    "resources": [r["id"] for r in res if _words5(r["title"]) & _words5(c["name"])][:2],
+                    "practical": f"Build a 45-minute exercise that uses {c['name'].lower()} on a real task",
+                    "time_estimate": "3 hours this week",
+                    "done_definition": f"You can explain {c['name'].lower()} to a colleague and pass the quiz cards",
+                },
+            }
+        )
+    return {"items": items, "ignore": ["Framework-of-the-week releases", "Leaderboard drama"]}
+
+
+@mock_generator("explainer")
+def explainer(inputs: dict[str, Any]) -> dict[str, Any]:
+    topic, depth = inputs["topic"], inputs["depth"]
+    known = inputs.get("known", [])
+    src = inputs.get("sources", [])
+    cite = [s["id"] for s in src][:2]
+    news = (
+        f"\n\nIn the news: {_compress(sents(src[0]['text'])[0]) if src and sents(src[0]['text']) else src[0]['title'] if src else ''} [{cite[0]}]"
+        if cite
+        else ""
+    )
+    bodies = {
+        "plain": f"**{topic}** in plain words.\n\nThink of it like a well-organised kitchen: the right things are close at hand when you need them.\n\nIt matters because it changes how reliably a system answers.\n\nYou use it when the obvious approach is too slow or too vague.\n\nYou skip it when the problem is small enough to solve directly.",
+        "engineer": f"## {topic}: how it works\n\nThe mechanism has three parts: an input step, a decision step and a check step.\n\n**Trade-offs:** more steps add latency and cost, but reduce silent failures.\n\n**When to use it:** when wrong answers are expensive.\n\n```python\ndef run(task, steps):\n    for step in steps:\n        task = step(task)\n    return task\n```",
+        "deep": f"## {topic}: internals and limits\n\nAt depth, the behaviour depends on how errors compound across steps and how the check step is calibrated.\n\n**Limitations:** checks share blind spots with the generator; measure on held-out tasks.",
+    }
+    connects = (
+        ("This connects to " + ", ".join(known[:3]) + ", which you already know well.")
+        if known
+        else "Rate your skills to see how this connects to what you know."
+    )
+    body = (
+        bodies.get(depth, bodies["engineer"])
+        + news
+        + f"\n\n### How this connects to what you already know\n{connects}"
+    )
+    cards = [
+        {
+            "type": "qa",
+            "front": f"What problem does {topic} solve?",
+            "back": "It makes answers more reliable when the obvious approach is too slow or vague.",
+        },
+        {
+            "type": "one_line",
+            "front": f"Explain {topic} in one line.",
+            "back": "Organise the work so the right information or check is applied at the right step.",
+        },
+        {
+            "type": "scenario",
+            "front": f"Your outputs are often wrong and errors are costly. Would you add {topic}? Why?",
+            "back": "Yes: the added latency is worth fewer silent failures; measure on real tasks first.",
+        },
+    ]
+    if depth != "plain":
+        cards.append(
+            {
+                "type": "code",
+                "front": "What does `run(task, steps)` return?",
+                "back": "The task after every step has been applied in order.",
+            }
+        )
+    return {"body_md": body, "connects_to": connects, "citations": cite, "cards": cards}
+
+
+@mock_generator("moat_radar")
+def moat_radar(inputs: dict[str, Any]) -> dict[str, Any]:
+    st = inputs.get("stories", [])
+    churn = [s for s in st if s.get("durability") == "churn"]
+    fund = [s for s in st if s.get("durability") == "fundamental"]
+    trend = [s for s in st if s.get("durability") == "trend"]
+
+    def pt(s: dict[str, Any], claim: str) -> dict[str, Any]:
+        return {"claim": claim, "evidence": [s["id"]], "reasoning": s["title"]}
+
+    out: dict[str, Any] = {
+        "commoditising": [pt(s, f"Commodity: {s['title'][:80]}") for s in (churn + trend)[:3]],
+        "appreciating": [pt(s, f"Appreciating: skills around {s['title'][:70]}") for s in fund[:3]],
+        "for_you": {
+            "know": [pt(s, s["title"][:90]) for s in (fund + trend)[:3]],
+            "learn": [pt(s, f"Learn the fundamentals behind {s['title'][:60]}") for s in fund[:3]],
+            "stop": [pt(s, f"Stop tracking every version of {s['title'][:50]}") for s in churn[:1]],
+        },
+        "for_builders": [
+            pt(s, "Defensibility moves to evaluation data and workflow trust") for s in fund[:1]
+        ],
+        "predictions": [
+            {
+                "text": "At least one more open-weights model release will claim parity on coding benchmarks within 90 days.",
+                "revisit_in_days": 90,
+            }
+        ],
+        "prediction_reviews": [
+            {"id": p["id"], "outcome": "unclear", "evidence": [], "note": "Not enough evidence yet."}
+            for p in inputs.get("previous", [])
+        ],
+    }
+    return out

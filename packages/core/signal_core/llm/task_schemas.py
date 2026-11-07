@@ -327,3 +327,75 @@ register(
     SparkOut,
     BuildBriefOut,
 )
+
+
+# ---------------- GYM (§9) ----------------
+class LearnPlan(Out):
+    explainer_topic: str
+    resources: list[str] = Field(default=[], description="ids from the RESOURCES list only")
+    practical: str = ""
+    time_estimate: str = ""
+    done_definition: str = ""
+
+
+class LearnItem(Out):
+    skill: str = Field(description="exact skill name from the list")
+    why: str = Field(description="why this, why now; cites [story_id] markers")
+    evidence: list[str] = Field(default=[], description="story ids from the list")
+    ignore_instead: str = ""
+    plan: LearnPlan
+
+
+class LearnNextOut(Out):
+    items: list[LearnItem] = Field(min_length=1, max_length=3)
+    ignore: list[str] = []
+
+
+class CardDraft(Out):
+    type: Literal["qa", "cloze", "one_line", "scenario", "code"] = "qa"
+    front: str
+    back: str
+
+
+class ExplainerOut(Out):
+    body_md: str
+    connects_to: str = ""
+    citations: list[str] = []
+    cards: list[CardDraft] = Field(min_length=3, max_length=5)
+
+
+# ---------------- MOAT RADAR (§6.11) ----------------
+class MoatPoint(Out):
+    claim: str
+    evidence: list[str] = Field(default=[], description="story ids")
+    reasoning: str = ""
+
+
+class MoatForYou(Out):
+    know: list[MoatPoint] = Field(default=[], max_length=3)
+    learn: list[MoatPoint] = Field(default=[], max_length=3)
+    stop: list[MoatPoint] = Field(default=[], max_length=1)
+
+
+class PredictionOut(Out):
+    text: str
+    revisit_in_days: int = Field(90, ge=7, le=730)
+
+
+class PredictionReview(Out):
+    id: str
+    outcome: Literal["right", "wrong", "unclear"]
+    evidence: list[str] = []
+    note: str = ""
+
+
+class MoatRadarOut(Out):
+    commoditising: list[MoatPoint] = []
+    appreciating: list[MoatPoint] = []
+    for_you: MoatForYou = MoatForYou()
+    for_builders: list[MoatPoint] = []
+    predictions: list[PredictionOut] = []
+    prediction_reviews: list[PredictionReview] = []
+
+
+register(LearnNextOut, ExplainerOut, MoatRadarOut)
