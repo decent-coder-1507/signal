@@ -7,7 +7,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { ApiError, get, post } from "@/lib/api";
 
-export type Me = { id: string; email: string; timezone: string; onboarded: boolean; totp_enabled: boolean };
+export type Me = {
+  id: string;
+  email: string;
+  timezone: string;
+  onboarded: boolean;
+  totp_enabled: boolean;
+  has_api_token?: boolean;
+};
 
 const NAV: { href: string; label: string }[] = [
   { href: "/", label: "Today" },
