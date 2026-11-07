@@ -6,12 +6,12 @@ import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { post } from "@/lib/api";
+import { useStartPost } from "@/components/studio/angles-dialog";
 import { errMsg } from "@/lib/hooks";
 
 export type ActionKind = "post" | "build" | "learn" | "watch" | "follow" | "ignore";
 
-const LATER: Record<"post" | "build" | "learn", string> = {
-  post: "Noted for a post — Studio arrives in a later milestone",
+const LATER: Record<"build" | "learn", string> = {
   build: "Noted as a build idea — Lab arrives in a later milestone",
   learn: "Noted to learn — Gym arrives in a later milestone",
 };
@@ -20,10 +20,16 @@ const LATER: Record<"post" | "build" | "learn", string> = {
 export function useStoryAction() {
   const toast = useToast();
   const qc = useQueryClient();
+  const startPost = useStartPost();
   return useMutation({
     mutationFn: async (v: { kind: ActionKind; id: string; title: string; followed?: boolean }) => {
       switch (v.kind) {
         case "post":
+          // Opens the angles dialog (§7.3); also counts as today's action.
+          startPost({ seed_type: "story", seed_id: v.id, title: v.title });
+          await post("/feedback", { target_type: "story", target_id: v.id, kind: "used", context: { action: "post" } });
+          await post("/habit/mark", { step: "action" });
+          return null;
         case "build":
         case "learn":
           await post("/feedback", { target_type: "story", target_id: v.id, kind: "used", context: { action: v.kind } });
@@ -43,7 +49,7 @@ export function useStoryAction() {
       }
     },
     onSuccess: (msg, v) => {
-      toast(msg, "good");
+      if (msg) toast(msg, "good");
       if (v.kind === "watch") qc.invalidateQueries({ queryKey: ["watches"] });
       if (v.kind === "follow") qc.invalidateQueries({ queryKey: ["story", v.id] });
       if (["post", "build", "learn"].includes(v.kind)) qc.invalidateQueries({ queryKey: ["today"] });

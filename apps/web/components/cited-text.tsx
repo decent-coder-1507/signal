@@ -1,4 +1,5 @@
 import { citationTooltip, parseCitations, type CitationRef } from "@/lib/citations";
+import { safeUrl } from "@/lib/safe-url";
 
 /** Text with citation markers rendered as hoverable superscript footnotes (§9.8). */
 export function CitedText({ text, index }: { text: string | null | undefined; index: Map<string, CitationRef> }) {
@@ -10,9 +11,9 @@ export function CitedText({ text, index }: { text: string | null | undefined; in
           <span key={i}>{s.text}</span>
         ) : (
           <sup key={i} className="cite" data-testid="citation">
-            {s.ref.url ? (
+            {safeUrl(s.ref.url) ? (
               <a
-                href={s.ref.url}
+                href={safeUrl(s.ref.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 title={citationTooltip(s.ref)}
@@ -41,12 +42,12 @@ export function CitationList({ index }: { index: Map<string, CitationRef> }) {
           <span className="min-w-0 break-words">
             {r.source && <span className="font-medium text-text">{r.source}</span>}
             {r.source && (r.title || r.url) && " — "}
-            {r.url ? (
-              <a className="underline underline-offset-2 hover:text-text" href={r.url} target="_blank" rel="noopener noreferrer">
+            {safeUrl(r.url) ? (
+              <a className="underline underline-offset-2 hover:text-text" href={safeUrl(r.url)} target="_blank" rel="noopener noreferrer">
                 {r.title || r.url}
               </a>
             ) : (
-              r.title
+              r.title || r.url
             )}
           </span>
         </li>

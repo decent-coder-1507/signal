@@ -132,6 +132,12 @@ function Wizard({
       const changed = Object.fromEntries(
         sources.filter((s) => srcOn[s.id] !== s.enabled).map((s) => [s.id, srcOn[s.id]]),
       );
+      // Voice calibration: each pasted post becomes an own reference post (separated by a line with ---).
+      const refs = voice
+        .split(/^\s*---\s*$/m)
+        .map((x) => x.trim())
+        .filter((x) => x.length >= 20);
+      for (const text of refs) await post("/reference-posts", { platform: "linkedin", text, is_own: true });
       await post("/onboarding/complete", {
         role: role.trim(),
         goals: goalList,
@@ -283,7 +289,7 @@ function Wizard({
           {step === 3 && (
             <>
               <Intro>Paste a few posts you have written that sound like you. STUDIO learns your voice from them.</Intro>
-              <Field label="Reference posts" hint="Kept on this screen for now — they will be saved in Studio (M4).">
+              <Field label="Reference posts" hint="Separate posts with a line containing only ---. Five or more calibrate your voice; add more later in Studio → Voice.">
                 <textarea className={inputClass} rows={8} value={voice} onChange={(e) => setVoice(e.target.value)} />
               </Field>
             </>

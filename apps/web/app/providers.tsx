@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
+import { AnglesProvider } from "@/components/studio/angles-dialog";
 import { ToastProvider } from "@/components/ui/toast";
 import { ApiError } from "@/lib/api";
 
@@ -32,7 +33,9 @@ export function Providers({ children }: { children: ReactNode }) {
   useServiceWorker();
   return (
     <QueryClientProvider client={client}>
-      <ToastProvider>{children}</ToastProvider>
+      <ToastProvider>
+        <AnglesProvider>{children}</AnglesProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

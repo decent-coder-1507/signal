@@ -53,7 +53,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-6xl">
+    <div className="mx-auto flex min-h-dvh max-w-[96rem]">
       <nav aria-label="Main" className="sticky top-0 hidden h-dvh w-52 shrink-0 flex-col gap-0.5 border-r border-border px-3 py-5 md:flex">
         <Link href="/" className="mb-5 px-2 font-serif text-xl font-semibold tracking-tight">
           SIGNAL

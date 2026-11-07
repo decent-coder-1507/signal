@@ -163,9 +163,12 @@ function Totp() {
         >
           <p className="text-sm">Add this key to your authenticator app, then enter the 6-digit code it shows.</p>
           <code className="block break-all rounded-md border border-border bg-surface-2 px-2 py-1.5 font-mono text-xs">{setup.secret}</code>
-          <a href={setup.otpauth_uri} className="text-xs text-accent underline">
-            Open in authenticator app
-          </a>
+          {/* the only non-http(s) link we render: pyotp's otpauth:// URI, checked by scheme */}
+          {setup.otpauth_uri.startsWith("otpauth://") && (
+            <a href={setup.otpauth_uri} className="text-xs text-accent underline">
+              Open in authenticator app
+            </a>
+          )}
           <div className="flex flex-wrap items-end gap-2">
             <Field label="Code">
               <input inputMode="numeric" className={inputClass + " w-32"} value={code} onChange={(e) => setCode(e.target.value)} required />

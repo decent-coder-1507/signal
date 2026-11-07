@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/toast";
 import { ApiError, get, post } from "@/lib/api";
 import { citationIndex, type CitationRef } from "@/lib/citations";
 import { errMsg, useFeedback } from "@/lib/hooks";
+import { safeUrl } from "@/lib/safe-url";
 import { DURABILITY, fmtDate, HYPE, humanize } from "@/lib/labels";
 import type { FeedbackKind, StoryDetail } from "@/lib/types";
 
@@ -196,14 +197,18 @@ function StoryView({ data }: { data: StoryDetail }) {
                   </Badge>
                   <span>{t.label}</span>
                 </div>
-                <a
-                  href={t.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-0.5 block break-words text-sm font-medium hover:underline"
-                >
-                  {t.title}
-                </a>
+                {safeUrl(t.url) ? (
+                  <a
+                    href={safeUrl(t.url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-0.5 block break-words text-sm font-medium hover:underline"
+                  >
+                    {t.title}
+                  </a>
+                ) : (
+                  <p className="mt-0.5 break-words text-sm font-medium">{t.title}</p>
+                )}
                 <p className="text-xs text-muted">
                   {t.source}
                   {t.summary ? ` — ${t.summary}` : ""}
