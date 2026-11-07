@@ -1020,3 +1020,16 @@ def moat_radar(inputs: dict[str, Any]) -> dict[str, Any]:
         ],
     }
     return out
+
+
+@mock_generator("review_summary")
+def review_summary(inputs: dict[str, Any]) -> dict[str, Any]:
+    st = inputs.get("stories", [])
+    if not st:
+        return {"summary": "A quiet period: nothing important cleared the bar."}
+    lead = "; ".join(f"{s['title']} [{s['id']}]" for s in st[:3])
+    fund = sum(1 for s in st if s.get("durability") == "fundamental")
+    return {
+        "summary": f"The {'week' if inputs.get('kind') == 'weekly' else 'month'} was shaped by: {lead}. "
+        f"{fund} of the top stories look like durable shifts rather than churn."
+    }

@@ -399,3 +399,10 @@ class MoatRadarOut(Out):
 
 
 register(LearnNextOut, ExplainerOut, MoatRadarOut)
+
+
+class ReviewSummaryOut(Out):
+    summary: str = Field(description="4-6 calm sentences; cite [story_id] for facts")
+
+
+register(ReviewSummaryOut)

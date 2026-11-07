@@ -90,7 +90,9 @@ def next_difficulty(d: float, g: int) -> float:
 def stability_after_recall(d: float, s: float, r: float, g: int) -> float:
     hard = W[15] if g == 2 else 1.0
     easy = W[16] if g == 4 else 1.0
-    return float(s * (1 + math.exp(W[8]) * (11 - d) * s ** (-W[9]) * (math.exp(W[10] * (1 - r)) - 1) * hard * easy))
+    return float(
+        s * (1 + math.exp(W[8]) * (11 - d) * s ** (-W[9]) * (math.exp(W[10] * (1 - r)) - 1) * hard * easy)
+    )
 
 
 def stability_after_forget(d: float, s: float, r: float) -> float:

@@ -111,6 +111,17 @@ async def execute(
             status = "degraded"
             ctx.log(f"step {name}: ERROR {e.__class__.__name__}: {e}")
             log.warning("step_failed", routine=routine.name, step=name, error=str(e))
+    if [c for c in routine.channels or [] if c != "app"]:
+        try:
+            from signal_core.notify.steps import deliver
+
+            async with session.begin_nested():
+                delivered = await deliver(ctx)
+            if delivered:
+                ctx.outputs["_delivered"] = delivered
+                ctx.log(f"delivered: {delivered}")
+        except Exception as e:
+            ctx.log(f"delivery ERROR {e.__class__.__name__}: {e}")
     cost = (
         await session.execute(
             select(func.coalesce(func.sum(LLMCall.cost_usd), 0.0)).where(LLMCall.run_id == run.id)

@@ -107,7 +107,13 @@ async def seed_routines(session: AsyncSession, cfg: AppConfig, tz: str) -> None:
     existing = {r.name: r for r in (await session.execute(select(Routine))).scalars()}
     for rc in cfg.routines.routines:
         if rc.name in existing:
-            continue  # user edits in the UI win over config after first seed
+            r = existing[rc.name]
+            if not (r.params or {}).get(
+                "_user_edited"
+            ):  # config updates flow in until the user edits it in the UI
+                r.cron, r.steps, r.channels = rc.cron, rc.steps, list(rc.channels)
+                r.params = {**rc.params}
+            continue
         session.add(
             Routine(
                 name=rc.name,

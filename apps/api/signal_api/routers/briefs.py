@@ -372,6 +372,7 @@ async def update_routine(rid: uuid.UUID, body: RoutinePatch, _: CurrentUser, db:
         raise HTTPException(404, "routine not found")
     for k, v in body.model_dump(exclude_none=True).items():
         setattr(r, k, v)
+    r.params = {**(r.params or {}), "_user_edited": True}
     return routine_out(r)
 
 
