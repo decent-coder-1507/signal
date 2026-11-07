@@ -1,0 +1,9 @@
+{% extends "_base.html.j2" %}
+{% block content %}
+  <div class="kicker">{{ slide.kicker or '' }}</div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:28px">
+    <div class="accent" style="font-size:200px;font-weight:800;line-height:1">{{ slide.title }}</div>
+    <p class="body">{{ slide.body }}</p>
+  </div>
+  {% if slide.source %}<p class="muted" style="font-size:30px">Source: {{ slide.source }}</p>{% endif %}
+{% endblock %}

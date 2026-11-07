@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: {{ w }}px; height: {{ h }}px; }
+  body { background: {{ p.bg }}; color: {{ p.fg }}; font-family: "{{ brand.font_body or 'Inter' }}", "Segoe UI", system-ui, sans-serif;
+         font-size: 40px; line-height: 1.35; -webkit-font-smoothing: antialiased; }
+  .frame { position: relative; width: {{ w }}px; height: {{ h }}px; padding: 96px 88px 120px; display: flex; flex-direction: column; }
+  .kicker { font-size: 30px; letter-spacing: .06em; text-transform: uppercase; color: {{ p.accent }}; font-weight: 700; }
+  h1 { font-family: "{{ brand.font_heading or 'Inter' }}", "Segoe UI", system-ui, sans-serif; font-size: 84px; line-height: 1.08; font-weight: 800; letter-spacing: -0.02em; }
+  h2 { font-size: 64px; line-height: 1.12; font-weight: 800; letter-spacing: -0.015em; }
+  p.body { font-size: 44px; color: {{ p.fg }}; }
+  .muted { color: {{ p.muted }}; }
+  .accent { color: {{ p.accent }}; }
+  .footer { position: absolute; left: 88px; right: 88px; bottom: 56px; display: flex; justify-content: space-between; font-size: 30px; color: {{ p.muted }}; }
+  pre { font-family: "JetBrains Mono", Consolas, monospace; font-size: 30px; line-height: 1.4; background: rgba(255,255,255,.08);
+        border-left: 6px solid {{ p.accent }}; padding: 28px 32px; border-radius: 12px; white-space: pre-wrap; color: {{ p.fg }}; }
+  .mermaid { font-size: 30px; }
+</style></head>
+<body><div class="frame">{% block content %}{% endblock %}
+<div class="footer"><span>{{ brand.handle or '' }}</span><span>{{ index }} / {{ total }}</span></div>
+</div></body></html>

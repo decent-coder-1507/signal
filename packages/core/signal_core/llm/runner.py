@@ -201,4 +201,4 @@ class ClaudeRunnerProvider:
             self.healthy, self.last_error = True, None
             return res
         finally:
-            Path(sys_path).unlink(missing_ok=True)  # noqa: ASYNC240 - tiny temp file
+            Path(sys_path).unlink(missing_ok=True)

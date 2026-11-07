@@ -1,0 +1,8 @@
+{% extends "_base.html.j2" %}
+{% block content %}
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:48px">
+    <div class="accent" style="font-size:160px;line-height:.6;font-weight:800">“</div>
+    <h2 style="font-weight:700">{{ slide.title }}</h2>
+    <p class="body muted">— {{ slide.body }}</p>
+  </div>
+{% endblock %}

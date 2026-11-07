@@ -1,0 +1,15 @@
+{% extends "_base.html.j2" %}
+{% block content %}
+  <div class="kicker">{{ '%02d' % index }}</div>
+  <h2 style="margin:28px 0 36px">{{ slide.title }}</h2>
+  {% if slide.mermaid %}
+    <div class="mermaid" style="flex:1;display:flex;justify-content:center;align-items:center">{{ slide.mermaid }}</div>
+  {% elif slide.steps %}
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px">
+    {% for st in slide.steps %}
+      <div style="border:3px solid {{ p.accent }};border-radius:16px;padding:22px 30px;font-size:40px">{{ st }}</div>
+      {% if not loop.last %}<div class="accent" style="text-align:center;font-size:44px">↓</div>{% endif %}
+    {% endfor %}</div>
+  {% endif %}
+  {% if slide.body %}<p class="body muted">{{ slide.body }}</p>{% endif %}
+{% endblock %}

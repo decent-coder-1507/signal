@@ -1,0 +1,7 @@
+{% extends "_base.html.j2" %}
+{% block content %}
+  <div class="kicker">{{ '%02d' % index }}</div>
+  <h2 style="margin:28px 0 36px">{{ slide.title }}</h2>
+  {% if slide.body %}<p class="body" style="margin-bottom:36px">{{ slide.body }}</p>{% endif %}
+  {% if slide.code %}<pre>{{ slide.code }}</pre>{% endif %}
+{% endblock %}

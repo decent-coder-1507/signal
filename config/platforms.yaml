@@ -1,21 +1,36 @@
-# Platform defaults (§7.6, §7.10). Verify limits at build time; see docs/DECISIONS.md.
+# Platform defaults (§7.6, §7.10). Verified 2026-11-07 against official docs where possible (ADR-019);
+# values marked "unverified" come from common knowledge, not an official page. Edit freely.
 linkedin:
-  post_chars_max: 3000
+  post_chars_max: 3000            # unverified (docs only list FIELD_LENGTH_TOO_LONG)
   composer_url: "https://www.linkedin.com/feed/?shareActive=true"
   best_times: ["Tue 09:00", "Wed 09:00", "Thu 09:00"]
+  carousel: "pdf_document"        # organic carousels = document (PDF) posts; native carousels are ads-only
+  document_max_pages: 300         # learn.microsoft.com … /shares/documents-api
+  document_max_mb: 100
+  api: {product: "Share on LinkedIn (self-serve)", scope: w_member_social, endpoint: "POST /rest/posts",
+        rate_limit_per_member_day: 150, note: "pin a recent Linkedin-Version header"}
   publish_api: false
 x:
-  post_chars_max: 280
+  post_chars_max: 280             # unverified (premium long posts ~25k)
   composer_url: "https://x.com/compose/post"
   best_times: ["Mon 19:00", "Wed 19:00", "Fri 12:00"]
+  thread_max_posts: 10            # no official limit; each post is billed separately
+  api: {pricing: "pay-per-use, ~$0.015 per post create (docs.x.com/x-api/getting-started/pricing)",
+        rate_limit: "100 per 15 min per user", endpoint: "POST /2/tweets"}
   publish_api: false
 instagram:
-  carousel_max_slides: 20
+  carousel_max_slides: 20         # developers.facebook.com/docs/instagram-platform/content-publishing
+  carousel_aspect: "4:5"          # 1080×1350 is the 4:5 upper bound
   caption_chars_max: 2200
   hashtags_max: 30
+  reel_seconds: [3, 900]
+  image_format: "jpeg, ≤ 8 MB (API publishing)"
+  api: {requires: "Business or Creator account; Facebook Login (linked Page) or Business Login for Instagram",
+        scopes: [instagram_content_publish], daily_limit: "50–100 API posts / 24 h (docs conflict; query content_publishing_limit)"}
   publish_api: false
   best_times: ["Sat 11:00"]
 hashnode:
   graphql_endpoint: "https://gql.hashnode.com"
-  publish_api: false        # flag; also requires SIGNAL_HASHNODE_TOKEN and explicit per-post approval
+  mutation: "publishPost(input: PublishPostInput!) — title, contentMarkdown, publicationId, subtitle, tags[{name,slug}], originalArticleURL"
+  publish_api: false              # flag; also requires SIGNAL_HASHNODE_TOKEN, hashnode_publication_id and per-post approval
 ai_disclosure: {linkedin: false, x: false, instagram: false, hashnode: false}

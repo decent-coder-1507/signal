@@ -72,7 +72,8 @@ def _card(s: Story, ins: StoryInsight | None, update: bool, exploration: bool = 
         "uncertainty": ins.uncertainty_labels if ins else [],
         "exploration": exploration,
         "citations": [
-            {"id": c["id"], "url": c["url"], "source": c["source"]} for c in (ins.citations if ins else [])
+            {"id": c["id"], "url": c["url"], "source": c["source"], "title": c.get("title", "")}
+            for c in (ins.citations if ins else [])
         ][:6],
         "degraded": bool(ins and ins.degraded),
     }

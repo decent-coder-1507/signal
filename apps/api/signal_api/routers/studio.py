@@ -28,7 +28,9 @@ from signal_core.services.settings_store import set_setting
 from signal_core.studio import service as studio
 
 router = APIRouter(tags=["studio"])
-Platform = Literal["linkedin", "x", "x_thread"]
+Platform = Literal[
+    "linkedin", "x", "x_thread", "instagram_carousel", "linkedin_carousel", "instagram_reel", "hashnode"
+]
 
 
 def idea_out(c: ContentIdea) -> dict[str, Any]:
@@ -54,6 +56,8 @@ def version_out(v: DraftVersion) -> dict[str, Any]:
         "body": v.body,
         "thread": v.thread,
         "first_comment": v.first_comment,
+        "slides": v.slides,
+        "script": v.script,
         "claims": v.claims,
         "grade": v.grade,
         "factcheck": v.factcheck,
@@ -203,6 +207,7 @@ async def repurpose(did: uuid.UUID, body: RepurposeIn, _: CurrentUser, db: DB) -
 
 
 class EditIn(BaseModel):
+    slides: list[dict[str, Any]] | None = None  # inline slide edits → new human version, then re-render
     body: str | None = None
     thread: list[str] | None = None
     first_comment: str | None = None
@@ -217,6 +222,15 @@ async def edit(did: uuid.UUID, body: EditIn, _: CurrentUser, db: DB) -> dict[str
         if v is None or v.draft_id != d.id:
             raise HTTPException(404, "version not found")
         d.current_version_id = v.id
+    if body.slides is not None:
+        cur = await studio.current_version(db, d)
+        nv = await studio.human_edit(db, d, cur.body, cur.thread, cur.first_comment)
+        nv.slides = {**(cur.slides or {}), "items": body.slides}
+        from signal_core.studio.visual import _spec, validate_carousel
+
+        issues = validate_carousel(body.slides, _spec(d.platform))
+        nv.aitell = {**(nv.aitell or {}), "issues": [*(nv.aitell or {}).get("issues", []), *issues]}
+        await db.flush()
     if body.body is not None or body.thread is not None or body.first_comment is not None:
         await studio.human_edit(db, d, body.body, body.thread, body.first_comment)
     return await draft_out(db, d, versions=True)
@@ -503,3 +517,101 @@ async def del_ref(rid: uuid.UUID, _: CurrentUser, db: DB) -> dict[str, bool]:
         raise HTTPException(404, "not found")
     await db.delete(r)
     return {"deleted": True}
+
+
+# ---------------- M5: visual assets, long-form export, API publishing ----------------
+def asset_out(a: Any) -> dict[str, Any]:
+    return {"id": str(a.id), "kind": a.kind, "meta": a.meta, "url": f"/assets/{a.id}"}
+
+
+@router.post("/studio/drafts/{did}/render", status_code=201)
+async def render_assets(did: uuid.UUID, _: CurrentUser, db: DB) -> list[dict[str, Any]]:
+    from signal_core.render.renderer import RenderError
+    from signal_core.studio.visual import render_draft
+
+    try:
+        assets = await render_draft(db, await _draft(db, did))
+    except RenderError as e:
+        raise HTTPException(422, str(e)) from e
+    return [asset_out(a) for a in assets]
+
+
+@router.get("/studio/drafts/{did}/assets")
+async def list_assets(did: uuid.UUID, _: CurrentUser, db: DB) -> list[dict[str, Any]]:
+    from signal_core.db.models import Asset
+
+    rows = (await db.execute(select(Asset).where(Asset.draft_id == did).order_by(Asset.created_at))).scalars()
+    return [asset_out(a) for a in rows]
+
+
+@router.get("/assets/{aid}")
+async def get_asset(aid: uuid.UUID, _: CurrentUser, db: DB) -> Any:
+    from pathlib import Path
+
+    from fastapi.responses import FileResponse
+
+    from signal_core.db.models import Asset
+    from signal_core.settings import get_settings
+
+    a = await db.get(Asset, aid)
+    if a is None:
+        raise HTTPException(404, "asset not found")
+    path = Path(a.path).resolve()
+    root = (get_settings().data_dir / "assets").resolve()
+    if root not in path.parents or not path.exists():  # never serve files outside the assets folder
+        raise HTTPException(404, "asset file missing")
+    media = {
+        "png": "image/png",
+        "pdf": "application/pdf",
+        "md": "text/markdown",
+        "svg": "image/svg+xml",
+        "zip": "application/zip",
+    }.get(a.kind, "application/octet-stream")
+    return FileResponse(path, media_type=media, filename=path.name)
+
+
+@router.get("/studio/drafts/{did}/export.md")
+async def export_md(did: uuid.UUID, _: CurrentUser, db: DB) -> Any:
+    from fastapi.responses import PlainTextResponse
+
+    d = await _draft(db, did)
+    if d.platform != "hashnode":
+        raise HTTPException(409, "Markdown export is for articles")
+    v = await studio.current_version(db, d)
+    return PlainTextResponse(
+        v.body,
+        media_type="text/markdown",
+        headers={"content-disposition": 'attachment; filename="article.md"'},
+    )
+
+
+class PublishApiIn(BaseModel):
+    confirm: bool = False  # explicit approval of THIS post (§7.10)
+
+
+@router.post("/studio/drafts/{did}/publish-api")
+async def publish_api(did: uuid.UUID, body: PublishApiIn, _: CurrentUser, db: DB) -> dict[str, Any]:
+    from signal_core.studio.visual import PublishError, publish_via_api
+
+    try:
+        return await publish_via_api(db, await _draft(db, did), body.confirm, transport=_hashnode_transport)
+    except PublishError as e:
+        raise HTTPException(409, str(e)) from e
+
+
+_hashnode_transport: Any = None  # tests inject a mock transport here
+
+
+class CardIn(BaseModel):
+    kind: Literal["quote_card", "stat_card"]
+    title: str = Field(min_length=1, max_length=200)
+    body: str = Field("", max_length=300)
+    source: str | None = None
+
+
+@router.post("/studio/cards", status_code=201)
+async def make_card(body: CardIn, _: CurrentUser, db: DB) -> dict[str, Any]:
+    from signal_core.studio.visual import render_card
+
+    a = await render_card(db, body.kind, body.title, body.body, body.source, uuid.uuid4().hex[:12])
+    return asset_out(a)

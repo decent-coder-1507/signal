@@ -411,7 +411,9 @@ def angles(inputs: dict[str, Any]) -> dict[str, Any]:
 def _compress(sent: str) -> str:
     """Short line around the first number (names/numbers verbatim, never a 15+ word copy of the source)."""
     toks = sent.rstrip(".").split()
-    i = next((k for k, t in enumerate(toks) if _NUM.search(t)), None)
+    nums = [k for k, t in enumerate(toks) if _NUM.search(t)]
+    # Anchor on the most informative number ("212 lines" beats "Day 1").
+    i = max(nums, key=lambda k: sum(c.isdigit() for c in toks[k])) if nums else None
     window = toks[max(0, i - 4) : i + 5] if i is not None else toks[:9]
     line = " ".join(window).strip(",;:")
     line = re.sub(r",\s*\w+$", "", line)
@@ -578,3 +580,315 @@ def safety_check(inputs: dict[str, Any]) -> dict[str, Any]:
             {"type": "legal_financial_advice", "text": "investment advice tone", "severity": "medium"}
         )
     return {"flags": flags}
+
+
+@mock_generator("carousel_writer")
+def carousel_writer(inputs: dict[str, Any]) -> dict[str, Any]:
+    facts = _fact_lines(inputs.get("sources", []), 6)
+    lo = int(inputs.get("slides_min", 6))
+    hook = "What actually changes for teams shipping LLM features"
+    slides = [{"title": hook, "body": "Swipe for what it means in practice.", "alt": f"Title slide: {hook}"}]
+    for f, _sid in facts[: lo - 2]:
+        words = f.split()
+        slides.append({"title": " ".join(words[:6]), "body": " ".join(words)[:160], "alt": f})
+    generic = ["Test it on one real task", "Measure before you migrate", "Keep your eval set honest"]
+    while len(slides) < lo - 1:
+        g = generic[(len(slides) - 1) % len(generic)]
+        slides.append({"title": g, "body": "Small experiments beat big rewrites.", "alt": g})
+    slides.append(
+        {
+            "title": "What would you test first?",
+            "body": "Tell me in the comments.",
+            "cta": "Follow for more",
+            "alt": "Closing slide asking what you would test first",
+        }
+    )
+    claims = [{"sentence": f, "source_ids": [sid]} for f, sid in facts[: lo - 2]]
+    tags = ["#ai", "#softwareengineering", "#llm"]
+    return {
+        "template": "carousel-minimal",
+        "slides": slides,
+        "caption": "The details are in the slides. What would you test first?\n\n" + " ".join(tags),
+        "hashtags": tags,
+        "claims": claims,
+    }
+
+
+@mock_generator("reel_writer")
+def reel_writer(inputs: dict[str, Any]) -> dict[str, Any]:
+    facts = _fact_lines(inputs.get("sources", []), 4)
+    thesis = inputs.get("angle", {}).get("thesis", "One thing changed this week")
+    beats, t = [], 2.0
+    lines = [f for f, _ in facts] or [thesis]
+    lines += [
+        "Here is how I would test it on a real task.",
+        "Measure it before you change your stack.",
+        "Follow for the results.",
+    ]
+    for line in lines[:7]:
+        dur = max(4.0, round(len(line.split()) / 2.5, 1))
+        beats.append(
+            {
+                "t_start": t,
+                "t_end": round(t + dur, 1),
+                "voiceover": line,
+                "on_screen": " ".join(line.split()[:6]),
+                "shot": "screen recording of the release notes" if _NUM.search(line) else "talking head",
+            }
+        )
+        t = round(t + dur, 1)
+    while t < 30:
+        beats.append(
+            {
+                "t_start": t,
+                "t_end": round(t + 5, 1),
+                "voiceover": "Small experiments beat big rewrites.",
+                "on_screen": "Small experiments win",
+                "shot": "b-roll of a terminal",
+            }
+        )
+        t = round(t + 5, 1)
+    return {
+        "hook": {
+            "t_start": 0,
+            "t_end": 2,
+            "voiceover": thesis[:90],
+            "on_screen": thesis[:40],
+            "shot": "close-up, fast cut",
+        },
+        "beats": beats,
+        "caption": f"{thesis}. What would you test first?",
+        "cover_text": thesis[:40],
+        "hashtags": ["#ai", "#coding", "#llm"],
+        "audio_mood": "calm, minimal electronic",
+        "claims": [{"sentence": f, "source_ids": [sid]} for f, sid in facts],
+    }
+
+
+GENERIC_PARAS = [
+    "Start with the smallest experiment that could change your mind. Pick one real task from your backlog, write down "
+    "what good looks like, and run the new option next to the current one. Keep the setup boring so the comparison "
+    "stays fair.",
+    "Write the evaluation before you write the prompt. A short list of real inputs with expected outputs turns vague "
+    "impressions into a number you can track. Grow the list every time production surprises you.",
+    "Watch the operational cost, not only the quality. Latency, retries and the effort to keep the integration working "
+    "decide whether a tool survives contact with a real team.",
+    "Treat vendor benchmarks as a hypothesis. They tell you where to look, not what you will see on your own data. "
+    "Your own tasks are the only benchmark that pays the bills.",
+    "Keep the change reversible. Put the new component behind a flag, log enough to compare runs, and be ready to roll "
+    "back without a meeting.",
+]
+
+
+@mock_generator("article_writer")
+def article_writer(inputs: dict[str, Any]) -> dict[str, Any]:
+    sources = inputs.get("sources", [])
+    facts = _fact_lines(sources, 6)
+    thesis = inputs.get("angle", {}).get("thesis", "A practical look")
+    lo = int((inputs.get("words") or [1200, 2500])[0])
+    parts = ["## What happened", "", *[f for f, _ in facts], "", "## Why it matters for engineers", ""]
+    i = 0
+    while len(" ".join(parts).split()) < lo - 120:
+        parts += [GENERIC_PARAS[i % len(GENERIC_PARAS)], ""]
+        if i % len(GENERIC_PARAS) == 1:
+            parts += [
+                "## Try it in ten minutes",
+                "",
+                "```python",
+                "def evaluate(cases, run):",
+                "    passed = sum(run(c['input']) == c['expected'] for c in cases)",
+                "    return passed / len(cases)",
+                "```",
+                "",
+            ]
+        i += 1
+    parts += ["## Takeaway", "", "Test the claim on your own work before you change your stack."]
+    refs = [{"title": s["title"], "url": s["url"]} for s in sources if s.get("url")][:5]
+    return {
+        "seo_title": thesis[:68],
+        "subtitle": "A practitioner's notes",
+        "tldr": "What changed, what it means for engineers, and a ten-minute way to test it yourself.",
+        "body_md": "\n".join(parts),
+        "tags": ["ai", "llm", "engineering"],
+        "references": refs,
+        "cover_title": thesis[:60],
+        "claims": [{"sentence": f, "source_ids": [sid]} for f, sid in facts],
+    }
+
+
+# ---------------- LAB ----------------
+@mock_generator("spark_detect")
+def spark_detect(inputs: dict[str, Any]) -> dict[str, Any]:
+    stories = inputs.get("stories", [])
+    prior = inputs.get("prior_art", [])
+    existing = {e.lower() for e in inputs.get("existing", [])}
+    ideas = []
+    for s in stories[:6]:
+        blob = (s["title"] + " " + s.get("summary", "")).lower()
+        if inputs.get("capacity_guard"):
+            kind = "practical"
+        elif any(k in blob for k in ("protocol", "framework", "open-source", "release", "inference")):
+            kind = "poc"
+        elif any(k in blob for k in ("price", "pricing", "cut")):
+            kind = "experiment"
+        elif "injection" in blob or "security" in blob:
+            kind = "weekend_build"
+        else:
+            continue
+        title = {
+            "poc": f"Small POC on {s['title'][:50]}",
+            "experiment": f"Measure what {s['title'][:50]} saves you",
+            "weekend_build": f"CLI guard inspired by {s['title'][:45]}",
+            "practical": f"45-minute try-out: {s['title'][:45]}",
+        }[kind]
+        if title.lower() in existing:
+            continue
+        ev = [{"ref": s["id"], "why": "The development this idea builds on."}]
+        others = [
+            x
+            for x in stories
+            if x["id"] != s["id"]
+            and set(re.findall(r"[a-z]{5,}", blob))
+            & set(re.findall(r"[a-z]{5,}", (x["title"] + " " + x.get("summary", "")).lower()))
+        ]
+        if others:
+            ev.append({"ref": others[0]["id"], "why": "An independent related signal."})
+        pa = [
+            a["id"]
+            for a in prior
+            if set(re.findall(r"[a-z]{5,}", a["title"].lower())) & set(re.findall(r"[a-z]{5,}", blob))
+        ][:2]
+        scores = {
+            "impact": 6.5,
+            "confidence": 6.0 + len(ev),
+            "ease": 8.0 if kind in ("practical", "experiment") else 6.0,
+            "personal_fit": 7.5,
+            "learning_value": 7.0,
+            "content_value": 7.5,
+            "novelty": 6.0 - 1.5 * len(pa),
+        }
+        ideas.append(
+            {
+                "type": kind,
+                "title": title,
+                "one_liner": f"Turn '{s['title'][:60]}' into something you can run this week.",
+                "evidence": ev,
+                "problem": "Teams read about it but never measure it on their own work.",
+                "persona": "A backend or AI engineer shipping LLM features",
+                "why_now": s.get("summary", "")[:200],
+                "solution": "A minimal tool or notebook that measures the claim on real tasks.",
+                "mvp_scope": ["one command to run", "a results table", "README with setup"],
+                "not_in_mvp": ["UI", "auth", "multi-tenant"],
+                "stack": ["python", "fastapi", "one new: evals harness"],
+                "effort": {"estimate": "1 day" if kind != "practical" else "45 min", "confidence": "medium"},
+                "risks": ["results may not generalise beyond your tasks"],
+                "moat": "Your own task data and eval set.",
+                "validation_plan": [
+                    "run on 10 real tasks",
+                    "share the table in a post and ask who sees the same",
+                ],
+                "learning_skills": ["Evals & testing of LLM apps"],
+                "content_plan": ["kickoff post", "results carousel"],
+                "scores": scores,
+                "prior_art_refs": pa,
+            }
+        )
+        if len(ideas) >= 3:
+            break
+    return {"ideas": ideas}
+
+
+@mock_generator("build_brief")
+def build_brief(inputs: dict[str, Any]) -> dict[str, Any]:
+    idea = inputs["idea"]
+    ev = "\n".join(f"- {e['title']}: {e['url']}" for e in inputs.get("evidence", []))
+    mvp = "\n".join(f"- {m}" for m in idea.get("mvp_scope", []))
+    non = "\n".join(f"- {m}" for m in idea.get("not_in_mvp", []))
+    brief = f"""# {idea["title"]}
+
+## Goal
+{idea["one_liner"]}
+
+## User story
+As {idea["persona"]}, I want {idea["solution"].lower()} so that {idea["problem"].lower()}
+
+## Scope
+{mvp}
+
+## Non-goals
+{non}
+
+## Acceptance criteria
+- [ ] Running the main command on the sample input produces the results table
+- [ ] Tests pass with `make test`
+- [ ] README explains setup in under 5 steps
+
+## Stack
+{", ".join(idea.get("stack", []))}
+
+## Architecture sketch
+```mermaid
+flowchart LR
+  input[Tasks] --> runner[Runner] --> results[Results table]
+```
+
+## Data model
+- Task(id, input, expected)
+- Result(task_id, output, passed, latency_ms)
+
+## Milestones
+1. Day 1: runner + one task end to end (check: one passing result row)
+2. Day 2: ten tasks + results table (check: table renders)
+
+## Test plan
+Unit tests for the runner and scorer; one end-to-end run on sample tasks.
+
+## Demo script
+Run the command, show the table, explain one surprising result.
+
+## Risks
+{chr(10).join("- " + r for r in idea.get("risks", []))}
+
+## Evidence
+{ev}
+"""
+    claude = f"""# CLAUDE.md — {idea["title"]}
+
+## Rules
+- Keep the MVP scope in BRIEF.md; anything else goes to a follow-up list.
+- Never invent facts or numbers in outputs; results come from actual runs.
+- Small commits with conventional messages.
+
+## Commands
+- install: `uv sync`
+- test: `uv run pytest`
+- lint: `uv run ruff check .`
+- run: `uv run python -m app`
+
+## Definition of done
+All acceptance criteria in BRIEF.md pass and the demo script works.
+"""
+    exp = ""
+    if idea.get("type") in ("experiment", "practical"):
+        exp = f"""# EXPERIMENT — {idea["title"]}
+
+## Hypothesis
+{idea["one_liner"]}
+
+## Setup
+Describe the environment and versions used.
+
+## Dataset
+10 real tasks from your backlog.
+
+## Metrics
+Pass rate, latency, cost per task.
+
+## Procedure
+1. Run baseline. 2. Run candidate. 3. Compare.
+
+## Results
+| Task | Baseline | Candidate | Notes |
+|------|----------|-----------|-------|
+"""
+    return {"brief_md": brief, "claude_md": claude, "experiment_md": exp}

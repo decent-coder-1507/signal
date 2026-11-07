@@ -192,6 +192,8 @@ async def store_entries(
     stats = IngestStats(source=src.name, found=len(entries))
     new_items: list[Item] = []
     for e in entries:
+        if not e.url.lower().startswith(("http://", "https://", "mid:")):
+            continue  # only http(s) links (and email message ids) are ever stored or rendered as hrefs
         n = normalise(e.url, e.title, e.summary, e.content_html, e.content_type_hint)
         if not n.title:
             continue

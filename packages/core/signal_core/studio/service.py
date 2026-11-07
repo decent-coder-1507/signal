@@ -245,7 +245,9 @@ async def start_drafts(
     idea.status = "drafting"
     drafts = []
     for p in platforms:
-        fmt = "thread" if p == "x_thread" else "post"
+        from signal_core.studio.visual import FORMATS
+
+        fmt = FORMATS.get(p) or ("thread" if p == "x_thread" else "post")
         d = Draft(
             content_idea_id=idea.id,
             platform=p,
@@ -260,7 +262,7 @@ async def start_drafts(
     await session.flush()
     for d in drafts:
         if not d.pending_questions:
-            await generate(session, d)
+            await produce(session, d)
     return drafts
 
 
@@ -294,7 +296,7 @@ async def answer_questions(
     d.pending_questions = []
     d.ready_override = {**(d.ready_override or {}), "_answer_raw_ids": raw_ids}
     await session.flush()
-    await generate(session, d)
+    await produce(session, d)
     return d
 
 
@@ -330,6 +332,15 @@ async def _context(session: AsyncSession, d: Draft) -> tuple[ContentIdea, SeedCo
 
 def _text_of(v: DraftVersion) -> str:
     return "\n\n".join(v.thread) if v.thread else v.body
+
+
+async def produce(session: AsyncSession, d: Draft, repurpose: str | None = None) -> DraftVersion:
+    """Dispatch to the text pipeline or the visual/long-form pipeline (M5) by platform."""
+    from signal_core.studio.visual import FORMATS, generate_format
+
+    if d.platform in FORMATS:
+        return await generate_format(session, d, repurpose=repurpose)
+    return await generate(session, d, repurpose=repurpose)
 
 
 async def generate(
@@ -693,7 +704,7 @@ async def repurpose(session: AsyncSession, d: Draft, platform: str) -> Draft:
     )
     session.add(nd)
     await session.flush()
-    await generate(session, nd, repurpose=_text_of(dv))
+    await produce(session, nd, repurpose=_text_of(dv))
     return nd
 
 

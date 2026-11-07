@@ -1,0 +1,8 @@
+{% extends "_base.html.j2" %}
+{% block content %}
+  <div class="kicker">{{ slide.kicker or brand.name or '' }}</div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:28px">
+    <h1 style="font-size:76px">{{ slide.title }}</h1>
+    {% if slide.body %}<p class="body muted" style="font-size:38px">{{ slide.body }}</p>{% endif %}
+  </div>
+{% endblock %}

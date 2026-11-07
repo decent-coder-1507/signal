@@ -1,0 +1,20 @@
+{% extends "_base.html.j2" %}
+{% block content %}
+{% if index == 1 %}
+  <div class="kicker">{{ slide.kicker or brand.name or '' }}</div>
+  <div style="flex:1;display:flex;align-items:center"><h1>{{ slide.title }}</h1></div>
+  {% if slide.body %}<p class="body muted">{{ slide.body }}</p>{% endif %}
+{% elif index == total %}
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:40px">
+    <h2>{{ slide.title }}</h2>
+    {% if slide.body %}<p class="body">{{ slide.body }}</p>{% endif %}
+    <p class="body accent" style="font-weight:700">{{ slide.cta or 'Follow ' ~ (brand.handle or '') }}</p>
+  </div>
+{% else %}
+  <div class="kicker">{{ '%02d' % (index - 1) }}</div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:36px">
+    <h2>{{ slide.title }}</h2>
+    {% if slide.body %}<p class="body">{{ slide.body }}</p>{% endif %}
+  </div>
+{% endif %}
+{% endblock %}

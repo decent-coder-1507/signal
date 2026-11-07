@@ -202,6 +202,112 @@ class SafetyOut(Out):
     flags: list[SafetyFlag] = []
 
 
+# ---------------- STUDIO visual & long-form (§7.6–7.7, M5) ----------------
+class Slide(Out):
+    title: str
+    body: str = ""
+    code: str | None = None
+    mermaid: str | None = None
+    steps: list[str] = []
+    visual_hint: str = ""
+    alt: str = ""
+
+
+class CarouselOut(Out):
+    template: Literal["carousel-minimal", "carousel-code", "carousel-diagram"] = "carousel-minimal"
+    slides: list[Slide] = Field(min_length=3, max_length=20)
+    caption: str = ""
+    hashtags: list[str] = []
+    claims: list[Claim] = []
+
+
+class ReelBeat(Out):
+    t_start: float = Field(ge=0)
+    t_end: float = Field(gt=0)
+    voiceover: str
+    on_screen: str = ""
+    shot: str = Field("", description="B-roll / screen-recording shot")
+
+
+class ReelOut(Out):
+    hook: ReelBeat
+    beats: list[ReelBeat] = Field(min_length=2)
+    caption: str = ""
+    cover_text: str = ""
+    hashtags: list[str] = []
+    audio_mood: str = ""
+    claims: list[Claim] = []
+
+
+class ArticleRef(Out):
+    title: str
+    url: str
+
+
+class ArticleOut(Out):
+    seo_title: str
+    subtitle: str = ""
+    tldr: str
+    body_md: str = Field(description="Markdown body with ## sections and fenced code blocks")
+    tags: list[str] = Field(default=[], max_length=5)
+    references: list[ArticleRef] = []
+    cover_title: str = ""
+    claims: list[Claim] = []
+
+
+# ---------------- LAB (§8) ----------------
+IdeaType = Literal[
+    "practical", "experiment", "poc", "weekend_build", "product", "oss_contribution", "teardown", "vanco"
+]
+
+
+class Evidence(Out):
+    ref: str = Field(description="story id or item id from the provided list")
+    why: str
+
+
+class IdeaScores(Out):
+    impact: float = Field(ge=0, le=10)
+    confidence: float = Field(ge=0, le=10)
+    ease: float = Field(ge=0, le=10)
+    personal_fit: float = Field(ge=0, le=10)
+    learning_value: float = Field(ge=0, le=10)
+    content_value: float = Field(ge=0, le=10)
+    novelty: float = Field(ge=0, le=10)
+
+
+class IdeaCard(Out):
+    type: IdeaType
+    title: str
+    one_liner: str
+    evidence: list[Evidence] = Field(min_length=1)
+    problem: str
+    persona: str
+    why_now: str
+    solution: str
+    mvp_scope: list[str] = []
+    not_in_mvp: list[str] = []
+    stack: list[str] = []
+    effort: dict[str, str | float] = {}
+    risks: list[str] = []
+    moat: str = ""
+    validation_plan: list[str] = []
+    learning_skills: list[str] = []
+    content_plan: list[str] = []
+    scores: IdeaScores
+    prior_art_refs: list[str] = []
+
+
+class SparkOut(Out):
+    ideas: list[IdeaCard] = Field(default=[], max_length=3)
+
+
+class BuildBriefOut(Out):
+    brief_md: str
+    claude_md: str
+    experiment_md: str = ""
+
+
 register(
     EnrichBatch,
     StoryInsightOut,
@@ -215,4 +321,9 @@ register(
     GradeOut,
     FactCheckOut,
     SafetyOut,
+    CarouselOut,
+    ReelOut,
+    ArticleOut,
+    SparkOut,
+    BuildBriefOut,
 )
