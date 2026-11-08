@@ -8,6 +8,7 @@ via the Alpine WSL distro's Docker (Windows host, ADR-002). CLI: `python -m sign
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -33,15 +34,17 @@ class BackupResult:
     pruned: list[str]
 
 
+_PGPASSWORD: dict[str, str] = {}
+_CRED = re.compile(r"://[^:/@\s]+:[^@\s]+@")
+
+
 def _pg_cmd(tool: str, args: list[str], db_url: str) -> list[str]:
-    """Command line that runs pg_dump/pg_restore/psql against the configured database."""
+    """Command line that runs pg_dump/pg_restore/psql against the configured database. The password never goes
+    into argv (it is passed as PGPASSWORD in the child environment); docker exec uses the container's local trust."""
     u = make_url(db_url)
     if shutil.which(tool):
-        return [
-            tool,
-            f"--dbname=postgresql://{u.username}:{u.password}@{u.host}:{u.port}/{u.database}",
-            *args,
-        ]
+        _PGPASSWORD["value"] = u.password or ""
+        return [tool, f"--dbname=postgresql://{u.username}@{u.host}:{u.port}/{u.database}", *args]
     inner = [tool, "-U", str(u.username), "-d", str(u.database), *args]
     if shutil.which("docker"):
         return ["docker", "exec", "-i", CONTAINER, *inner]
@@ -59,10 +62,19 @@ def _pg_cmd(tool: str, args: list[str], db_url: str) -> list[str]:
 
 
 def _run(cmd: list[str], stdin: bytes | None = None) -> bytes:
-    p = subprocess.run(cmd, input=stdin, capture_output=True, check=False)
+    env = {**os.environ, "PGPASSWORD": _PGPASSWORD["value"]} if "value" in _PGPASSWORD else None
+    p = subprocess.run(cmd, input=stdin, capture_output=True, check=False, env=env)
     if p.returncode != 0:
-        raise RuntimeError(f"{' '.join(cmd[:4])}… failed: {p.stderr.decode('utf-8', 'replace')[:500]}")
+        tool = next((c for c in cmd if c in ("pg_dump", "pg_restore", "psql")), cmd[0])
+        err = _CRED.sub("://***@", p.stderr.decode("utf-8", "replace"))[:500]
+        raise RuntimeError(f"{tool} failed: {err}")  # never echo argv (it may contain connection details)
     return p.stdout
+
+
+def _write_private(path: Path, data: bytes) -> None:
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "wb") as f:
+        f.write(data)
 
 
 def backup(now: datetime | None = None, root: Path | None = None, db_url: str | None = None) -> BackupResult:
@@ -71,24 +83,27 @@ def backup(now: datetime | None = None, root: Path | None = None, db_url: str | 
     root = root or s.data_dir / "backups"
     daily = root / "daily"
     weekly = root / "weekly"
-    daily.mkdir(parents=True, exist_ok=True)
-    weekly.mkdir(parents=True, exist_ok=True)
+    for d in (root, daily, weekly):
+        d.mkdir(parents=True, exist_ok=True, mode=0o700)
+        os.chmod(d, 0o700)
     stamp = now.strftime("%Y%m%d-%H%M%S")
     data = _run(
         _pg_cmd("pg_dump", ["-Fc", "-Z", "6", "--no-owner"], db_url or s.database_url.replace("+asyncpg", ""))
     )
     dump = daily / f"signal-{stamp}.dump"
-    dump.write_bytes(data)
+    _write_private(dump, data)
     assets = None
     adir = s.data_dir / "assets"
     if adir.exists() and any(adir.rglob("*")):
         assets = daily / f"assets-{stamp}.tar.gz"
         with tarfile.open(assets, "w:gz") as tar:
             tar.add(adir, arcname="assets")
+        os.chmod(assets, 0o600)
     if now.weekday() == 6:  # Sunday copy goes to the weekly set
-        shutil.copy2(dump, weekly / dump.name)
-        if assets:
-            shutil.copy2(assets, weekly / assets.name)
+        for f in (dump, assets):
+            if f is not None:
+                shutil.copy2(f, weekly / f.name)
+                os.chmod(weekly / f.name, 0o600)
     pruned = _prune(daily, DAILY_KEEP) + _prune(weekly, WEEKLY_KEEP)
     if s.backup_s3_url:
         _offsite(dump, s.backup_s3_url)
