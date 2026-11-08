@@ -16,6 +16,7 @@ from signal_core.db.models import Entity, Item, ItemEnrichment, ItemEntity, Sour
 from signal_core.llm import router as llm
 from signal_core.llm.provider import BudgetExceeded, LLMUnavailable
 from signal_core.logging import get_logger
+from signal_core.ops.metrics import ITEMS_ENRICHED
 from signal_core.truth import validate_key_facts
 
 log = get_logger("enrich")
@@ -147,5 +148,6 @@ async def enrich_pending(
                 item.primary_source = True
             item.status = "enriched"
             st.enriched += 1
+            ITEMS_ENRICHED.inc()
         await session.flush()
     return st

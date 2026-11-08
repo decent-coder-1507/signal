@@ -289,6 +289,13 @@ async def _ledger(
         error=error,
         provider=provider,
     )
+    from signal_core.ops.metrics import LLM_CALLS, LLM_COST, LLM_TOKENS
+
+    LLM_CALLS.labels(task, status, provider or "?").inc()
+    LLM_COST.inc(max(cost, 0.0))
+    if res is not None:
+        LLM_TOKENS.labels("input").inc(res.input_tokens)
+        LLM_TOKENS.labels("output").inc(res.output_tokens)
     async with session_scope() as s:
         s.add(row)
         await s.flush()

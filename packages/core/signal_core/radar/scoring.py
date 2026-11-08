@@ -216,6 +216,9 @@ async def score_stories(
         if to_judge and prof is not None:
             await _judge(session, to_judge, prof, members, run_id)
             return await score_stories(session, now, run_id, judge=False)
+    from signal_core.ops.metrics import STORIES
+
+    STORIES.set(sum(1 for s in stories if s.final_score > -0.5))
     return sorted(stories, key=lambda s: -s.final_score)
 
 

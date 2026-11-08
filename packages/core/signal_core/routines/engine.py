@@ -94,6 +94,9 @@ async def execute(
     run = Run(routine_id=routine.id, name=routine.name, status="running", started_at=now)
     session.add(run)
     await session.flush()
+    import structlog
+
+    structlog.contextvars.bind_contextvars(run_id=str(run.id), routine=routine.name)
     ctx = StepContext(session, routine, run, now, {**(routine.params or {}), **(params or {})})
     status = "ok"
     for name in routine.steps:
@@ -128,6 +131,9 @@ async def execute(
         )
     ).scalar_one()
     run.status = status
+    from signal_core.ops.metrics import ROUTINE_RUNS
+
+    ROUTINE_RUNS.labels(routine.name, status).inc()
     run.finished_at = datetime.now(UTC) if now is None else now
     run.outputs = ctx.outputs
     run.log = "\n".join(ctx.log_lines)

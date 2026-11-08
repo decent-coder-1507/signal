@@ -16,6 +16,7 @@ MILESTONE_ROUTERS: list[str] = [
     "gym",
     "reviews",
     "knowledge",
+    "ops_extra",
 ]
 
 

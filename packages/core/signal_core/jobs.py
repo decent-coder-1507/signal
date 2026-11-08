@@ -69,6 +69,9 @@ async def run_with_retries(name: str, key: str, kwargs: dict[str, Any], backoff_
             return result
         except Exception as e:
             err = "".join(traceback.format_exception_only(e)).strip()
+            from signal_core.ops.metrics import JOB_FAILURES
+
+            JOB_FAILURES.labels(name).inc()
             log.warning("job_failed", job=name, key=key, attempt=attempt, error=err)
             if attempt == MAX_ATTEMPTS:
                 await _record(name, key, "dead", attempt, kwargs, err + "\n" + traceback.format_exc()[-2000:])

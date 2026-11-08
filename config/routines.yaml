@@ -6,7 +6,7 @@ routines:
   - {name: weekly_review, cron: "0 10 * * 0", steps: [weekly_recap, content_plan, idea_of_week, learn_next, quiz, metrics_summary, weekly_sections], channels: [app, email]}
   - {name: monthly_review, cron: "0 10 1 * *", steps: [state_of_tech, moat_radar, content_learnings, idea_pipeline_review, skill_progress, tuning_proposals, cost_report, monthly_sections], channels: [app, email]}
   - {name: quarterly_reset, cron: "0 10 1 1,4,7,10 *", steps: [quarterly_reset, monthly_sections], channels: [app]}
-  - {name: nightly_maintenance, cron: "30 2 * * *", steps: [cluster_merge, retrain_preferences, source_health, backup, evals_sample], channels: []}
+  - {name: nightly_maintenance, cron: "30 2 * * *", steps: [cluster_merge, retrain_preferences, source_health, backup, evals_sample, cache_cleanup, scheduler_health], channels: []}
   - {name: metrics_prompts, cron: "0 * * * *", steps: [metrics_prompts], channels: [telegram]}
   - {name: content_nudges, cron: "*/15 * * * *", steps: [publish_assist_nudges, flush_notifications], channels: []}
 notifications: {max_per_day: 4, quiet_hours: ["22:30", "07:00"]}

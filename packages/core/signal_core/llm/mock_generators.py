@@ -121,7 +121,7 @@ ENRICH_TYPE = {
 def enrich_one(it: dict[str, Any], topics: list[str]) -> dict[str, Any]:
     text = it.get("text") or it.get("title", "")
     ss = sents(text)
-    factual = [s for s in ss if _NUM.search(s) or _CAP.search(s)]
+    factual = [s for s in ss if (_NUM.search(s) or _CAP.search(s)) and len(s.split()) >= 5]
     facts = []
     for s in factual[:5]:
         span = s if len(s.split()) <= 40 else " ".join(s.split()[:40])

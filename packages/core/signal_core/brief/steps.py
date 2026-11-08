@@ -13,7 +13,10 @@ from signal_core.routines.engine import StepContext, step
 async def step_assemble(ctx: StepContext) -> dict[str, Any]:
     await check_watches(ctx.session, ctx.now, ctx.run.id)
     kind = "weekend" if "weekend" in ctx.routine.name else "daily"
-    b = await assemble(ctx.session, ctx.now, kind, ctx.params, ctx.run.id)
+    from signal_core.ops.metrics import BRIEF_SECONDS
+
+    with BRIEF_SECONDS.time():
+        b = await assemble(ctx.session, ctx.now, kind, ctx.params, ctx.run.id)
     return {
         "brief_id": str(b.id),
         "kind": b.kind,

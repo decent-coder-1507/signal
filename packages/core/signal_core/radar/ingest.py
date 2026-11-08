@@ -261,6 +261,10 @@ async def store_entries(
         assert item is not None
         new_items.append(item)
     stats.new = len(new_items)
+    if new_items:
+        from signal_core.ops.metrics import ITEMS_INGESTED
+
+        ITEMS_INGESTED.labels(src.type).inc(len(new_items))
     if not new_items:
         return stats
 
@@ -375,6 +379,9 @@ async def fetch_phase(spec: SourceSpec, client: PoliteClient) -> FetchOutcome:
     except Exception as e:
         err = f"{e.__class__.__name__}: {e}"[:1000]
         log.warning("source_failed", source=spec.name, error=err)
+        from signal_core.ops.metrics import SOURCE_ERRORS
+
+        SOURCE_ERRORS.labels(spec.name).inc()
         return FetchOutcome(sid, None, "error", err, int((time.monotonic() - t0) * 1000))
 
 

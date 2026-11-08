@@ -129,10 +129,15 @@ def write_config(path: Path | None = None) -> Path:
     s = get_settings()
     path = path or s.data_dir / "mcp-signal.json"
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    cfg = {"mcpServers": {"signal": {
-        "command": "uv", "args": ["run", "--directory", str(REPO_ROOT), "python", "-m", "signal_core.mcp.server"],
-        "env": {"SIGNAL_MODE": s.mode},
-    }}}
+    cfg = {
+        "mcpServers": {
+            "signal": {
+                "command": "uv",
+                "args": ["run", "--directory", str(REPO_ROOT), "python", "-m", "signal_core.mcp.server"],
+                "env": {"SIGNAL_MODE": s.mode},
+            }
+        }
+    }
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
