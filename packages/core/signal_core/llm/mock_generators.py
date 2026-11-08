@@ -1033,3 +1033,47 @@ def review_summary(inputs: dict[str, Any]) -> dict[str, Any]:
         "summary": f"The {'week' if inputs.get('kind') == 'weekly' else 'month'} was shaped by: {lead}. "
         f"{fund} of the top stories look like durable shifts rather than churn."
     }
+
+
+@mock_generator("metrics_learnings")
+def metrics_learnings(inputs: dict[str, Any]) -> dict[str, Any]:
+    s = inputs.get("summary", {})
+    findings, changes = [], {}
+    for var, groups in (s.get("breakdowns") or {}).items():
+        if len(groups) >= 2:
+            best = max(groups, key=lambda k: groups[k]["median_engagement"])
+            n = groups[best]["n"]
+            findings.append(
+                f"{var}={best} had the highest median engagement ({n} posts"
+                + (", small sample" if groups[best]["caution"] else "")
+                + ")"
+            )
+            if var == "length_bucket" and best == "short":
+                changes["max_words_per_line"] = 12
+    if not findings:
+        findings = ["Not enough measured posts yet to change anything."]
+    return {
+        "findings": findings,
+        "voice_rule_changes": changes or {"prefer_hook": "surprising_number"},
+        "add_banned_phrases": [],
+        "best_times": {},
+        "angle_preferences": ["practitioner"],
+        "caveats": "Small samples; treat as directional and re-test one variable at a time.",
+    }
+
+
+@mock_generator("ask")
+def ask(inputs: dict[str, Any]) -> dict[str, Any]:
+    q = _words5(inputs["question"])
+    chunks = inputs.get("chunks", [])
+    rel = [c for c in chunks if len(q & _words5(c["title"] + " " + c["text"])) >= max(1, min(2, len(q) // 3))]
+    if not rel:
+        return {"answer": "The retrieved notes do not answer this.", "insufficient": True}
+    parts = []
+    for c in rel[:3]:
+        ss = [x for x in sents(c["text"]) if _words5(x) & q] or sents(c["text"])[:1]
+        if ss:
+            parts.append(f"{_compress(ss[0])} [{c['id']}]")
+    if inputs.get("mode") == "compare":
+        parts.insert(0, "Here is how they compare, based on your sources:")
+    return {"answer": " ".join(parts), "insufficient": False}

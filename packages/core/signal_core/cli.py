@@ -101,6 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--demo", action="store_true", help="also load recorded fixture data (mock demo)")
     sub.add_parser("runner-check")
     sub.add_parser("check-config")
+    sub.add_parser("mcp-config")
     args = ap.parse_args(argv)
     url = get_settings().database_url
     if args.cmd == "ensure-db":
@@ -115,6 +116,10 @@ def main(argv: list[str] | None = None) -> int:
         res = asyncio.run(runner_check())
         print(json.dumps(res, indent=2, default=str))
         return 0 if res["ok"] else 1
+    elif args.cmd == "mcp-config":
+        from signal_core.mcp.server import write_config
+
+        print(write_config())
     elif args.cmd == "check-config":
         from signal_core.config import ConfigError, load_config
 

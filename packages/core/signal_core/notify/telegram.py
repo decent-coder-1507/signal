@@ -132,7 +132,7 @@ async def send_notification(kind: str, payload: dict[str, Any]) -> None:
         await c.send(
             chat,
             f"How did your {payload['platform']} post do ({payload['horizon']})? Reply with:\n"
-            f"/metrics {payload['publication_id'][:8]} impressions reactions comments reposts saves",
+            f"/metrics {payload['publication_id'].replace('-', '')[-8:]} impressions reactions comments reposts saves",
         )
     else:
         await c.send(chat, payload.get("text") or f"{kind}: {payload.get('title', '')}")

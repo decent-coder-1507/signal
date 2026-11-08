@@ -406,3 +406,23 @@ class ReviewSummaryOut(Out):
 
 
 register(ReviewSummaryOut)
+
+
+class LearningsOut(Out):
+    findings: list[str] = Field(description="what worked / didn't, each with sample size and caution")
+    voice_rule_changes: dict[str, str | int | float | bool | list[str]] = {}
+    add_banned_phrases: list[str] = []
+    best_times: dict[str, list[str]] = {}
+    angle_preferences: list[str] = []
+    caveats: str = ""
+
+
+register(LearningsOut)
+
+
+class AskOut(Out):
+    answer: str = Field(description="cite [chunk_id] after every factual sentence")
+    insufficient: bool = Field(False, description="true when the chunks do not answer the question")
+
+
+register(AskOut)
