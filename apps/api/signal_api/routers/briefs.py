@@ -49,9 +49,12 @@ def brief_out(b: Brief) -> dict[str, Any]:
     }
 
 
+DAILY_KINDS = ("daily", "catchup", "weekend")
+
+
 @router.get("/briefs/latest")
 async def latest(_: CurrentUser, db: DB, kind: str = "daily") -> dict[str, Any] | None:
-    kinds = ["daily", "catchup", "weekend"] if kind == "daily" else [kind]
+    kinds = list(DAILY_KINDS) if kind == "daily" else [kind]
     b = (
         (
             await db.execute(
@@ -152,7 +155,15 @@ async def today(_: CurrentUser, db: DB) -> dict[str, Any]:
     now = datetime.now(UTC)
     d = habit.local_day(now)
     day = await habit.get_day(db, d)
-    b = (await db.execute(select(Brief).order_by(desc(Brief.created_at)).limit(1))).scalars().first()
+    b = (
+        (
+            await db.execute(
+                select(Brief).where(Brief.kind.in_(DAILY_KINDS)).order_by(desc(Brief.created_at)).limit(1)
+            )
+        )
+        .scalars()
+        .first()
+    )  # never a weekly/monthly review: Today shows the triage brief
     due = (await db.execute(select(func.count()).select_from(Card).where(Card.due_at <= now))).scalar_one()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     outputs: dict[str, int] = {}

@@ -102,6 +102,13 @@ Status legend: ☐ not started · ◐ in progress · ☑ done (all acceptance cr
 - [x] 7 consecutive days of briefs without manual intervention: **time-travel simulation** (live LLM not available, CLI login expired)
 
 ## Log
+- 2026-11-08 — **Post-v1 fixes (gaps found while building the web UI).**
+  - `GET /today` returns only daily/catch-up/weekend briefs, never a weekly/monthly review; Today uses it directly again.
+  - Explainers return `sources` (id, title, URL, source) for their citations; the Gym explainer shows numbered footnotes with a linked source list.
+  - `/search` returns only hrefs that exist: items → their story, build logs → the idea page, explainers → `/gym?tab=explain&topic=…&depth=…`, notes → Library; `null` means "open the original URL".
+  - `chat_messages.meta` (migration `b7c1d2e3f4a5`) stores `mode`, `not_in_kb`, `offer_watch`, so a reloaded Ask thread keeps the "Create watch" button.
+  - Weekly review always has readable idea/try-it, learn-next and quiz sections, with links to Lab and Gym (or a line saying nothing came up).
+  - Regression tests added for each of the five.
 - 2026-11-08 — **M3–M10 done; v1 complete.** Final gate:
   - Backend: ruff + format clean, mypy strict clean (93 files), **pytest 179 passed** (mock mode). One test (`test_completing_triage_marks_habit_day`) depended on the calendar date (fixture corpus dated 2026-11-06, endpoint used the wall clock); it now pins the router clock.
   - Web: tsc + eslint clean, **Vitest 35 passed** (9 files), **Playwright 19 passed** in 1.8 min (16 desktop + 3 mobile @375 px), covering M0–M10 screens: onboarding, Today, Brief triage, story page, Studio (angles → graded draft → Ready gate → repurpose), Lab, Gym (6 tabs), Moat, Reviews wizards, Channels, Ask (streaming + citations + not-in-KB), search palette, Library, Analytics, Ops (7 tabs).

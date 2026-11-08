@@ -11,6 +11,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta
 from typing import Any
+from urllib.parse import quote
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -179,20 +180,53 @@ async def metrics_summary(ctx: StepContext) -> dict[str, Any]:
     )
 
 
-# idea_of_week / learn_next / quiz steps already exist; record their outputs as review sections.
-async def _wrap_weekly_from_outputs(ctx: StepContext) -> None:
-    for key, title in (
-        ("idea_of_week", "Idea & try-it of the week"),
-        ("learn_next", "Learn next"),
-        ("quiz", "Weekly quiz"),
-    ):
-        if key in ctx.outputs:
-            await _add(ctx, "weekly", {"key": key, "title": title, "data": ctx.outputs[key]})
+# idea_of_week / learn_next / quiz steps already exist; turn their outputs into readable review sections.
+# Every weekly flow step gets a section, even when its step produced nothing (it then says so).
+def _weekly_idea_section(out: dict[str, Any] | None) -> dict[str, Any]:
+    items = []
+    for key, label in (("idea_of_week", "Idea of the week"), ("try_it_of_week", "Try it this week")):
+        idea = (out or {}).get(key)
+        if idea:
+            items.append({"title": idea["title"], "sub": label, "href": f"/lab/{idea['id']}"})
+    text = "" if items else "No new sparks or try-its this week. Capture one in Lab when something itches."
+    return {"key": "idea_of_week", "title": "Idea & try-it of the week", "text": text, "items": items}
+
+
+def _weekly_learn_section(out: dict[str, Any] | None) -> dict[str, Any]:
+    skills = [str(x) for x in (out or {}).get("items", [])]
+    items = [
+        {"title": sk, "sub": "Open an explainer", "href": f"/gym?tab=explain&topic={quote(sk)}"}
+        for sk in skills
+    ]
+    text = "" if items else "Nothing new to learn surfaced this week. Your skill map is in Gym."
+    return {"key": "learn_next", "title": "Learn next", "text": text, "items": items}
+
+
+def _weekly_quiz_section(out: dict[str, Any] | None) -> dict[str, Any]:
+    n = int((out or {}).get("questions", 0))
+    if n:
+        return {
+            "key": "quiz",
+            "title": "Weekly quiz",
+            "text": f"{n} question(s) from this week's cards and stories.",
+            "items": [{"title": "Take the quiz", "href": "/gym?tab=quiz"}],
+        }
+    return {
+        "key": "quiz",
+        "title": "Weekly quiz",
+        "text": "Not enough reviewed material for a quiz this week.",
+    }
 
 
 @step("weekly_sections")
 async def weekly_sections(ctx: StepContext) -> dict[str, Any]:
-    await _wrap_weekly_from_outputs(ctx)
+    o = ctx.outputs
+    for section in (
+        _weekly_idea_section(o.get("idea_of_week")),
+        _weekly_learn_section(o.get("learn_next")),
+        _weekly_quiz_section(o.get("quiz")),
+    ):
+        await _add(ctx, "weekly", section)
     return {"ok": True}
 
 

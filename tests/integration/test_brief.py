@@ -159,6 +159,12 @@ async def test_completing_triage_marks_habit_day(
     assert a["mode"] == "full"  # brief + action, no cards due yet
     today = (await client.get("/today")).json()
     assert today["habit"]["today"] == "full" and today["brief"]["id"] == b["id"]
+    # A newer weekly review never replaces the daily brief on Today.
+    seeded.add(
+        Brief(kind="weekly", period_start=NOW, period_end=NOW, content={"kind": "weekly", "sections": []})
+    )
+    await seeded.commit()
+    assert (await client.get("/today")).json()["brief"]["id"] == b["id"]
 
 
 async def test_routines_api_validates_and_runs(client: httpx.AsyncClient) -> None:

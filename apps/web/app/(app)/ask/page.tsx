@@ -162,7 +162,7 @@ function Chat({ threadId, onThread }: { threadId: string | null; onThread: (id: 
       patchLast(finish);
       qc.invalidateQueries({ queryKey: ["ask", "threads"] });
       if (!threadId) {
-        // Seed the new thread's cache with what is on screen (incl. not_in_kb/offer_watch, which GET does not return).
+        // Seed the new thread's cache with what is on screen so the reload after streaming does not flash.
         const msgs: Msg[] = [...before, { role: "user", content: question }, finish({ role: "assistant", content: text })];
         qc.setQueryData(["ask", "thread", done.thread_id], { id: done.thread_id, messages: msgs });
         onThread(done.thread_id);

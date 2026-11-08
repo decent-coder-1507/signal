@@ -70,6 +70,9 @@ async def test_explainer_generates_cards_and_is_cached(
     ex = (await client.post("/explainers", json={"topic": "RAG & retrieval", "depth": "engineer"})).json()
     assert "```python" in ex["body"] and "connects to" in ex["body"].lower()
     assert 3 <= len(ex["cards"]) <= 5
+    # Footnotes resolve to stored items with a title and link; only cited ids appear.
+    assert {x["id"] for x in ex["sources"]} <= set(ex["citations"])
+    assert all(x["title"] and x["url"] for x in ex["sources"])
     again = (await client.post("/explainers", json={"topic": "RAG & retrieval", "depth": "engineer"})).json()
     assert again["id"] == ex["id"] and len(again["cards"]) == len(ex["cards"])  # cached, no duplicate cards
     plain = (await client.post("/explainers", json={"topic": "RAG & retrieval", "depth": "plain"})).json()

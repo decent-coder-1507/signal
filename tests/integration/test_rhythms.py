@@ -227,8 +227,15 @@ async def client(seeded: AsyncSession, outbox: Path) -> AsyncIterator[httpx.Asyn
 async def test_weekly_review_end_to_end(client: httpx.AsyncClient) -> None:
     rv = (await client.post("/reviews/generate?kind=weekly")).json()
     keys = [s["key"] for s in rv["content"]["sections"]]
-    assert {"recap", "content_plan", "metrics"} <= set(keys)
+    assert {"recap", "content_plan", "idea_of_week", "learn_next", "quiz", "metrics"} <= set(keys), (
+        keys,
+        rv.get("log"),
+    )
     assert rv["content"]["flow"] == ["recap", "content_plan", "idea", "learn", "quiz", "metrics"]
+    by_key = {s["key"]: s for s in rv["content"]["sections"]}
+    for key in ("idea_of_week", "learn_next", "quiz"):  # readable: text or links, never only raw data
+        assert by_key[key].get("text") or by_key[key].get("items"), by_key[key]
+        assert all(i["href"].startswith(("/lab/", "/gym?")) for i in by_key[key].get("items", []))
     r = await client.post(f"/reviews/{rv['id']}/complete")
     assert r.status_code == 409 and r.json()["detail"]["missing"]
     plan = next(s for s in rv["content"]["sections"] if s["key"] == "content_plan")

@@ -11,7 +11,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { get, post } from "@/lib/api";
 import { habitProgress } from "@/lib/habit";
-import { errMsg, useCompleteBrief, useGenerateBrief, useLatestBrief, useToday } from "@/lib/hooks";
+import { errMsg, useCompleteBrief, useGenerateBrief, useToday } from "@/lib/hooks";
 import { BRIEF_KIND, fmtDateTime, humanize } from "@/lib/labels";
 import type { Notification, Today } from "@/lib/types";
 
@@ -27,9 +27,8 @@ export default function TodayPage() {
   const generate = useGenerateBrief();
   const complete = useCompleteBrief();
   const t = today.data;
-  // GET /today returns the newest Brief row of any kind (weekly/monthly reviews too), so use the daily-brief query.
-  const latest = useLatestBrief();
-  const brief = latest.data ?? (Array.isArray(t?.brief?.content?.stories) ? t?.brief : null);
+  // GET /today returns only daily/catch-up/weekend briefs, never a review.
+  const brief = t?.brief ?? null;
 
   return (
     <div className="mx-auto max-w-4xl">

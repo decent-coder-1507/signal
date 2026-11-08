@@ -661,6 +661,7 @@ class ChatMessage(Row):
     role: Mapped[str] = mapped_column(String(16))
     content: Mapped[str] = mapped_column(Text)
     citations: Mapped[Any] = mapped_column(J, default=list)
+    meta: Mapped[Any] = mapped_column(J, default=dict, server_default="{}")  # mode, not_in_kb, offer_watch
 
 
 # ---------------- ops ----------------

@@ -1,3 +1,4 @@
+import type { Citation } from "./citations";
 export const IDEA_STATUSES = ["spark", "shortlisted", "validating", "building", "shipped", "shared", "archived", "killed"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
 
@@ -84,7 +85,15 @@ export type GymCard = {
   state: number | string;
 };
 
-export type Explainer = { id: string; topic: string; depth: string; body: string; citations: string[]; cards: GymCard[] };
+export type Explainer = {
+  id: string;
+  topic: string;
+  depth: string;
+  body: string;
+  citations: string[];
+  sources: Citation[];
+  cards: GymCard[];
+};
 
 export type Progress = {
   radar: { domain: string; current: number; target: number }[];

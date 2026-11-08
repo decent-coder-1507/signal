@@ -92,6 +92,7 @@ async def test_ask_answers_with_correct_citations(client: httpx.AsyncClient, see
     assert {await event_of(seeded, c["id"]) for c in r2["citations"]} == {"injection"}
     thread = (await client.get(f"/chat-threads/{r['thread_id']}")).json()
     assert [m["role"] for m in thread["messages"]] == ["user", "assistant", "user", "assistant"]
+    assert thread["messages"][1]["not_in_kb"] is False and thread["messages"][1]["mode"]
 
 
 async def test_ask_says_not_in_knowledge_base(client: httpx.AsyncClient) -> None:
@@ -102,6 +103,9 @@ async def test_ask_says_not_in_knowledge_base(client: httpx.AsyncClient) -> None
     ).json()
     assert r["not_in_kb"] and "Not in your knowledge base" in r["answer"] and r["citations"] == []
     assert r.get("offer_watch")
+    # A reloaded thread keeps the flags the UI needs for the "Create watch" button.
+    reloaded = (await client.get(f"/chat-threads/{r['thread_id']}")).json()["messages"][-1]
+    assert reloaded["not_in_kb"] is True and reloaded["offer_watch"] == r["offer_watch"]
 
 
 async def test_ask_time_filter_slash_and_stream(client: httpx.AsyncClient) -> None:
@@ -121,6 +125,19 @@ async def test_ask_time_filter_slash_and_stream(client: httpx.AsyncClient) -> No
 async def test_search_and_library(client: httpx.AsyncClient) -> None:
     res = (await client.get("/search?q=open weights model")).json()
     assert res and any("Orchid" in x["title"] for x in res)
+    # Every href is a page that exists in the web app (or None: open the original URL).
+    pages = ("/stories/", "/lab/", "/library?tab=notes", "/gym?tab=explain&topic=")
+    assert all(x["href"] is None or x["href"].startswith(pages) for x in res), [x["href"] for x in res]
+    assert any(x["kind"] == "item" and (x["href"] or "").startswith("/stories/") for x in res)
+    # A story-scoped explainer's footnotes resolve to titled, linked items.
+    story_id = (await client.get("/stories?limit=1")).json()["items"][0]["id"]
+    ex = (
+        await client.post(
+            "/explainers", json={"topic": "Story context", "depth": "plain", "story_id": story_id}
+        )
+    ).json()
+    assert ex["citations"] and [x["id"] for x in ex["sources"]] == ex["citations"]
+    assert all(x["title"] and x["url"].startswith("http") for x in ex["sources"])
     n = (
         await client.post(
             "/notes",

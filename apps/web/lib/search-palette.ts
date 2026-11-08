@@ -8,7 +8,7 @@ export type SearchResult = {
   title: string;
   snippet: string;
   url: string | null;
-  href: string;
+  href: string | null;
   date: string | null;
 };
 
@@ -52,16 +52,11 @@ export function isPaletteShortcut(e: { key: string; metaKey?: boolean; ctrlKey?:
   return e.key.toLowerCase() === "k" && !!(e.metaKey || e.ctrlKey);
 }
 
-/** Where a result goes. Items have no in-app page, so they open their original (http(s) only). */
+/** Where a result goes: its in-app page when the API gives one, else the original article (http(s) only). */
 export function resultTarget(r: SearchResult): { href: string; external: boolean } | null {
-  if (r.kind === "item") {
-    const u = safeUrl(r.url);
-    return u ? { href: u, external: true } : null;
-  }
-  if (r.kind === "explainer") return { href: `/gym?tab=explain`, external: false };
-  if (r.kind === "build_log") return { href: r.href.replace(/^\/lab\?log=.*/, "/lab"), external: false };
-  if (r.kind === "note") return { href: "/library?tab=notes", external: false };
-  return r.href.startsWith("/") && !r.href.startsWith("//") ? { href: r.href, external: false } : null;
+  if (r.href && r.href.startsWith("/") && !r.href.startsWith("//")) return { href: r.href, external: false };
+  const u = safeUrl(r.url);
+  return u ? { href: u, external: true } : null;
 }
 
 export const KIND_LABEL: Record<string, string> = {

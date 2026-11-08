@@ -12,7 +12,7 @@ from sqlalchemy import desc, func, select
 
 from signal_api.deps import DB, CurrentUser
 from signal_core.brief import habit
-from signal_core.db.models import Card, MoatRadar, Quiz, Skill, SkillEvent
+from signal_core.db.models import Card, Item, MoatRadar, Quiz, Skill, SkillEvent, Source
 from signal_core.gym import moat
 from signal_core.gym import service as gym
 from signal_core.gym.fsrs import CardState
@@ -83,6 +83,27 @@ def card_out(c: Card) -> dict[str, Any]:
     }
 
 
+async def resolve_items(db: DB, ids: list[str]) -> list[dict[str, Any]]:
+    """Citation ids → {id, title, url, source} in the given order (unknown ids dropped), for footnote links."""
+    uids = []
+    for i in ids:
+        try:
+            uids.append(uuid.UUID(i))
+        except ValueError:
+            continue
+    if not uids:
+        return []
+    rows = (
+        await db.execute(
+            select(Item.id, Item.title, Item.canonical_url, Source.name)
+            .join(Source, Source.id == Item.source_id)
+            .where(Item.id.in_(uids))
+        )
+    ).all()
+    by_id = {str(r[0]): {"id": str(r[0]), "title": r[1], "url": r[2], "source": r[3]} for r in rows}
+    return [by_id[str(u)] for u in uids if str(u) in by_id]
+
+
 @router.post("/explainers", status_code=201)
 async def explainer(body: ExplainerIn, _: CurrentUser, db: DB) -> dict[str, Any]:
     ex, cards = await gym.explainer(db, body.topic, body.depth, body.story_id, body.force)
@@ -92,6 +113,7 @@ async def explainer(body: ExplainerIn, _: CurrentUser, db: DB) -> dict[str, Any]
         "depth": ex.depth,
         "body": ex.body,
         "citations": ex.citations,
+        "sources": await resolve_items(db, ex.citations),
         "cards": [card_out(c) for c in cards],
         "prompt_version": ex.prompt_version,
     }

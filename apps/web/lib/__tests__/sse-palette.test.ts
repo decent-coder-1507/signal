@@ -56,8 +56,13 @@ describe("search palette reducer", () => {
     expect(isPaletteShortcut({ key: "K", ctrlKey: true })).toBe(true);
     expect(isPaletteShortcut({ key: "k" })).toBe(false);
     expect(resultTarget(r("s1"))).toEqual({ href: "/stories/s1", external: false });
-    expect(resultTarget(r("i1", "item", { url: "https://n.example/a", href: "/items/i1" }))).toEqual({ href: "https://n.example/a", external: true });
-    expect(resultTarget(r("i2", "item", { url: "javascript:alert(1)", href: "/items/i2" }))).toBeNull();
+    expect(resultTarget(r("i0", "item", { url: "https://n.example/a", href: "/stories/s9" }))).toEqual({ href: "/stories/s9", external: false });
+    expect(resultTarget(r("i1", "item", { url: "https://n.example/a", href: null }))).toEqual({ href: "https://n.example/a", external: true });
+    expect(resultTarget(r("i2", "item", { url: "javascript:alert(1)", href: null }))).toBeNull();
+    expect(resultTarget(r("e1", "explainer", { href: "/gym?tab=explain&topic=KV-cache&depth=deep" }))).toEqual({
+      href: "/gym?tab=explain&topic=KV-cache&depth=deep",
+      external: false,
+    });
     expect(resultTarget(r("x", "story", { href: "//evil.example" }))).toBeNull();
   });
 });

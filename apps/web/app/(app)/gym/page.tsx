@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { CardsPanel } from "@/components/gym/card-review";
-import { ExplainerPanel } from "@/components/gym/explainer";
+import { ExplainerPanel, isDepth } from "@/components/gym/explainer";
 import { LearnNextPanel, ProgressPanel, QuizPanel } from "@/components/gym/panels";
 import { SkillMap } from "@/components/gym/skill-map";
 import { PageTitle } from "@/components/shell";
@@ -27,6 +27,8 @@ function GymInner() {
   const tab: TabId = TABS.some((t) => t.id === raw) ? (raw as TabId) : "map";
   const topic = params.get("topic") ?? "";
   const story = params.get("story") ?? undefined;
+  const rawDepth = params.get("depth");
+  const depth = isDepth(rawDepth) ? rawDepth : "engineer";
   const go = (id: TabId, extra = "") => router.replace(`${pathname}?tab=${id}${extra}`, { scroll: false });
   return (
     <>
@@ -34,7 +36,7 @@ function GymInner() {
       <TabPanel id={tab}>
         {tab === "map" && <SkillMap />}
         {tab === "learn" && <LearnNextPanel onExplain={(t) => go("explain", `&topic=${encodeURIComponent(t)}`)} />}
-        {tab === "explain" && <ExplainerPanel key={`${topic}|${story ?? ""}`} initialTopic={topic} storyId={story} />}
+        {tab === "explain" && <ExplainerPanel key={`${topic}|${depth}|${story ?? ""}`} initialTopic={topic} initialDepth={depth} storyId={story} />}
         {tab === "cards" && <CardsPanel />}
         {tab === "quiz" && <QuizPanel />}
         {tab === "progress" && <ProgressPanel />}

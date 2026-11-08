@@ -294,7 +294,8 @@ async def _save(
         await session.flush()
         thread_id = t.id
     session.add(ChatMessage(thread_id=thread_id, role="user", content=q))
-    msg = ChatMessage(thread_id=thread_id, role="assistant", content=body, citations=cites)
+    keep = {k: meta[k] for k in ("mode", "not_in_kb", "offer_watch") if k in meta}
+    msg = ChatMessage(thread_id=thread_id, role="assistant", content=body, citations=cites, meta=keep)
     session.add(msg)
     await session.flush()
     return {

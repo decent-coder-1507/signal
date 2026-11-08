@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime
 from typing import Any, Literal
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
@@ -17,7 +19,16 @@ from sqlalchemy import desc, select, text
 from signal_api.deps import DB, CurrentUser
 from signal_core.analytics import service as analytics
 from signal_core.ask import service as ask
-from signal_core.db.models import ChatMessage, ChatThread, Experiment, Note, Publication
+from signal_core.db.models import (
+    BuildLog,
+    ChatMessage,
+    ChatThread,
+    Experiment,
+    Explainer,
+    Note,
+    Publication,
+    StoryItem,
+)
 from signal_core.embeddings import get_embedder
 from signal_core.library import export
 
@@ -218,7 +229,14 @@ async def chat_thread(tid: uuid.UUID, _: CurrentUser, db: DB) -> dict[str, Any]:
         "id": str(t.id),
         "title": t.title,
         "messages": [
-            {"id": str(m.id), "role": m.role, "content": m.content, "citations": m.citations} for m in msgs
+            {
+                "id": str(m.id),
+                "role": m.role,
+                "content": m.content,
+                "citations": m.citations,
+                **(m.meta or {}),  # mode, not_in_kb, offer_watch: same fields as the live answer
+            }
+            for m in msgs
         ],
     }
 
@@ -315,14 +333,7 @@ async def search(
         since=datetime.combine(since, datetime.min.time(), UTC) if since else None,
         kinds=kinds,
     )
-    hrefs = {
-        "item": "/items/",
-        "story": "/stories/",
-        "idea": "/lab/",
-        "note": "/library?note=",
-        "explainer": "/gym?explainer=",
-        "build_log": "/lab?log=",
-    }
+    links = await _search_links(db, chunks)
     return [
         {
             "id": c.id,
@@ -330,11 +341,47 @@ async def search(
             "title": c.title,
             "snippet": c.text[:240],
             "url": c.url,
-            "href": hrefs.get(c.kind, "/") + c.id,
+            "href": links.get(c.id),  # in-app page, or None (open `url`)
             "date": c.at.date().isoformat() if c.at else None,
         }
         for c in chunks
     ]
+
+
+async def _search_links(db: DB, chunks: list[ask.Chunk]) -> dict[str, str | None]:
+    """In-app href per hit; every href points at a page that exists. Items link to their story (if any)."""
+
+    def ids(kind: str) -> list[uuid.UUID]:
+        out = []
+        for c in chunks:
+            if c.kind == kind:
+                with contextlib.suppress(ValueError):
+                    out.append(uuid.UUID(c.id))
+        return out
+
+    links: dict[str, str | None] = {}
+    if item_ids := ids("item"):
+        rows = await db.execute(
+            select(StoryItem.item_id, StoryItem.story_id).where(StoryItem.item_id.in_(item_ids))
+        )
+        links |= {str(i): f"/stories/{s}" for i, s in rows.all()}
+    if log_ids := ids("build_log"):
+        rows = await db.execute(select(BuildLog.id, BuildLog.idea_id).where(BuildLog.id.in_(log_ids)))
+        links |= {str(i): f"/lab/{idea}" for i, idea in rows.all()}
+    if ex_ids := ids("explainer"):
+        rows = await db.execute(
+            select(Explainer.id, Explainer.topic, Explainer.depth).where(Explainer.id.in_(ex_ids))
+        )
+        links |= {str(i): f"/gym?tab=explain&topic={quote(t)}&depth={quote(d)}" for i, t, d in rows.all()}
+    for c in chunks:
+        if c.kind == "story":
+            links[c.id] = f"/stories/{c.id}"
+        elif c.kind == "idea":
+            links[c.id] = f"/lab/{c.id}"
+        elif c.kind == "note":
+            links[c.id] = "/library?tab=notes"
+        links.setdefault(c.id, None)
+    return links
 
 
 class NoteIn(BaseModel):

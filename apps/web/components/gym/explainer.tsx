@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { inputClass } from "@/components/ui/field";
 import { post } from "@/lib/api";
-import { CITE_RE } from "@/lib/citations";
+import { CitationList } from "@/components/cited-text";
+import { CITE_RE, citationIndex, type CitationRef } from "@/lib/citations";
 import { errMsg } from "@/lib/hooks";
 import type { Explainer } from "@/lib/lab-types";
 import { Markdown } from "@/lib/markdown";
@@ -17,21 +18,29 @@ const DEPTHS = [
   { id: "engineer", label: "Engineer" },
   { id: "deep", label: "Deep" },
 ] as const;
-type Depth = (typeof DEPTHS)[number]["id"];
+export type Depth = (typeof DEPTHS)[number]["id"];
+export const isDepth = (v: string | null): v is Depth => DEPTHS.some((d) => d.id === v);
 
-/** Number citation markers in order of the explainer's citation list (ids only — see report: no titles from API). */
-function numberCitations(body: string, citations: string[]): string {
-  const idx = new Map(citations.map((c, i) => [c.toLowerCase(), i + 1]));
-  return body.replace(new RegExp(`\\s*${CITE_RE.source}`, "g"), (_m, _r, id: string) => {
-    const n = idx.get(id.toLowerCase());
-    return n ? ` [${n}]` : "";
+/** Replace citation markers with footnote numbers from the resolved source list; unresolvable ids are dropped. */
+function numberCitations(body: string, index: Map<string, CitationRef>): string {
+  return body.replace(new RegExp(`\s*${CITE_RE.source}`, "g"), (_m, _r, id: string) => {
+    const ref = index.get(id.toLowerCase()) ?? index.get(id);
+    return ref ? ` [${ref.n}]` : "";
   });
 }
 
-export function ExplainerPanel({ initialTopic = "", storyId }: { initialTopic?: string; storyId?: string }) {
+export function ExplainerPanel({
+  initialTopic = "",
+  initialDepth = "engineer",
+  storyId,
+}: {
+  initialTopic?: string;
+  initialDepth?: Depth;
+  storyId?: string;
+}) {
   const qc = useQueryClient();
   const [topic, setTopic] = useState(initialTopic);
-  const [depth, setDepth] = useState<Depth>("engineer");
+  const [depth, setDepth] = useState<Depth>(initialDepth);
   const gen = useMutation({
     mutationFn: (v: { topic: string; depth: Depth }) =>
       post<Explainer>("/explainers", { topic: v.topic, depth: v.depth, story_id: storyId ?? null }),
@@ -41,10 +50,11 @@ export function ExplainerPanel({ initialTopic = "", storyId }: { initialTopic?: 
   useEffect(() => {
     if (initialTopic && !auto.current) {
       auto.current = true;
-      gen.mutate({ topic: initialTopic, depth: "engineer" });
+      gen.mutate({ topic: initialTopic, depth: initialDepth });
     }
-  }, [initialTopic, gen]);
+  }, [initialTopic, initialDepth, gen]);
   const ex = gen.data;
+  const index = citationIndex(ex?.sources);
   const run = (d: Depth) => {
     setDepth(d);
     if (topic.trim().length >= 2) gen.mutate({ topic: topic.trim(), depth: d });
@@ -85,8 +95,13 @@ export function ExplainerPanel({ initialTopic = "", storyId }: { initialTopic?: 
         <Card data-testid="explainer">
           <h2 className="font-serif text-xl font-semibold">{ex.topic}</h2>
           <p className="mb-3 text-xs text-muted">{ex.depth} depth</p>
-          <Markdown source={numberCitations(ex.body, ex.citations)} />
-          {ex.citations.length > 0 && <p className="mt-3 text-xs text-muted">{ex.citations.length} source item(s) cited from the story.</p>}
+          <Markdown source={numberCitations(ex.body, index)} />
+          {index.size > 0 && (
+            <div className="mt-3" data-testid="explainer-sources">
+              <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Sources</h3>
+              <CitationList index={index} />
+            </div>
+          )}
           {ex.cards.length > 0 && (
             <p className="mt-3 rounded-md bg-surface-2 px-3 py-2 text-sm" data-testid="explainer-cards">
               {ex.cards.length} flashcard{ex.cards.length > 1 ? "s" : ""} added to your review queue.
