@@ -8,14 +8,14 @@ Status legend: ☐ not started · ◐ in progress · ☑ done (all acceptance cr
 | M0 | Foundation | ☑ | 2026-11-06 | see log |
 | M1 | Ingestion | ☑ | 2026-11-07 | see log |
 | M2 | Enrichment, clustering, scoring | ☑ | 2026-11-07 | see log |
-| M3 | Daily Brief + core UI | ◐ | | backend done |
-| M4 | Studio: text | ☐ | | |
-| M5 | Studio: visual & long-form | ☐ | | |
-| M6 | Lab | ☐ | | |
-| M7 | Gym core + Moat Radar | ☐ | | |
-| M8 | Rhythms & channels | ☐ | | |
-| M9 | Analytics & learning loop + Ask | ☐ | | |
-| M10 | Hardening & launch | ☐ | | |
+| M3 | Daily Brief + core UI | ☑ | 2026-11-07 | 17528c3 |
+| M4 | Studio: text | ☑ | 2026-11-07 | b4fa247, 74368d4 |
+| M5 | Studio: visual & long-form | ☑ | 2026-11-07 | 3d6ca12 |
+| M6 | Lab | ☑ | 2026-11-08 | 3d6ca12 + web: final |
+| M7 | Gym core + Moat Radar | ☑ | 2026-11-08 | 102cb7f + web: final |
+| M8 | Rhythms & channels | ☑ | 2026-11-08 | eb142f0 + web: final |
+| M9 | Analytics & learning loop + Ask | ☑ | 2026-11-08 | fb21933 + web: final |
+| M10 | Hardening & launch | ☑ | 2026-11-08 | f92f9f3, acf0b63, final |
 
 ## Kickoff answers (§0.3)
 1. LLM: Claude Runner via the local Claude Code CLI (no API keys). See ADR-001. Note: the CLI's OAuth session on this machine was expired at kickoff, so live calls fail until `claude` → `/login` is run. Mock mode is used meanwhile.
@@ -54,54 +54,65 @@ Status legend: ☐ not started · ◐ in progress · ☑ done (all acceptance cr
 - [x] brief ≤ 7 stories with diversity
 - [x] completing triage marks habit day
 - [x] watches trigger on fixture event
-- [ ] PWA installable (Lighthouse)
-- [ ] mobile layout usable at 375 px
+- [x] PWA installable: CDP `Page.getInstallabilityErrors` = [] in e2e (Lighthouse no longer audits PWAs, ADR-016)
+- [x] mobile layout usable at 375 px (e2e @mobile: shell, no horizontal overflow on /brief and /, installability)
 
 ### M4 Studio: text
-- [ ] from a story: ≥ 3 angles and graded drafts in < 60 s
-- [ ] banned phrase or unsupported claim cannot reach Ready without explicit override
-- [ ] ask-me answers saved to raw-material bank
-- [ ] every factual draft sentence has a resolvable citation
-- [ ] repurpose LinkedIn → X thread works
+- [x] from a story: ≥ 3 angles and graded drafts in < 60 s
+- [x] banned phrase or unsupported claim cannot reach Ready without explicit override
+- [x] ask-me answers saved to raw-material bank
+- [x] every factual draft sentence has a resolvable citation
+- [x] repurpose LinkedIn → X thread works
 
 ### M5 Studio: visual & long-form
-- [ ] carousel renders 1080×1350 PNGs + PDF with contrast check passing
-- [ ] reel script: hook ≤ 2 s, timestamps sum to 30–60 s
-- [ ] article export is valid Markdown with front-matter and working code fences
-- [ ] Hashnode publish only after explicit approval (mock)
+- [x] carousel renders 1080×1350 PNGs + PDF with contrast check passing
+- [x] reel script: hook ≤ 2 s, timestamps sum to 30–60 s
+- [x] article export is valid Markdown with front-matter and working code fences
+- [x] Hashnode publish only after explicit approval (mock)
 
 ### M6 Lab
-- [ ] daily brief shows ≤ 1 spark, only above threshold
-- [ ] each product idea has ≥ 2 evidence links
-- [ ] build brief zip contains BRIEF.md + CLAUDE.md
-- [ ] a build-log entry seeds a STUDIO draft that uses only log facts
+- [x] daily brief shows ≤ 1 spark, only above threshold
+- [x] each product idea has ≥ 2 evidence links
+- [x] build brief zip contains BRIEF.md + CLAUDE.md
+- [x] a build-log entry seeds a STUDIO draft that uses only log facts
 
 ### M7 Gym core + Moat Radar
-- [ ] learn-next shows 3 items with cited reasons
-- [ ] explainer generates cards
-- [ ] FSRS schedules next due dates correctly (unit-tested)
-- [ ] Moat Radar monthly report renders with evidence links
+- [x] learn-next shows 3 items with cited reasons
+- [x] explainer generates cards
+- [x] FSRS schedules next due dates correctly (unit-tested)
+- [x] Moat Radar monthly report renders with evidence links
 
 ### M8 Rhythms & channels
-- [ ] each default routine runs on schedule in mock mode with expected outputs
-- [ ] Telegram commands work against a mock Telegram server
-- [ ] weekly review completable end-to-end in the UI
-- [ ] notification cap enforced
+- [x] each default routine runs on schedule in mock mode with expected outputs
+- [x] Telegram commands work against a mock Telegram server
+- [x] weekly review completable end-to-end in the UI
+- [x] notification cap enforced
 
 ### M9 Analytics & learning loop + Ask
-- [ ] metrics form via Telegram stores data
-- [ ] analytics shows baseline comparison
-- [ ] accepting learnings creates a new voice version
-- [ ] Ask answers fixture questions with correct citations, says "not in your knowledge base" when appropriate
-- [ ] export opens cleanly in Obsidian
+- [x] metrics form via Telegram stores data
+- [x] analytics shows baseline comparison
+- [x] accepting learnings creates a new voice version
+- [x] Ask answers fixture questions with correct citations, says "not in your knowledge base" when appropriate
+- [x] export opens cleanly in Obsidian
 
 ### M10 Hardening & launch
-- [ ] budget soft/hard limits verified by test
-- [ ] restore drill documented and executed
-- [ ] all §16 targets measured and recorded
-- [ ] 7 consecutive days of briefs without manual intervention (time-travel simulation if no live LLM)
+- [x] budget soft/hard limits verified by test
+- [x] restore drill documented (RUNBOOK §6) and executed
+- [x] all §16 targets measured and recorded (see log)
+- [x] 7 consecutive days of briefs without manual intervention: **time-travel simulation** (live LLM not available, CLI login expired)
 
 ## Log
+- 2026-11-08 — **M3–M10 done; v1 complete.** Final gate:
+  - Backend: ruff + format clean, mypy strict clean (93 files), **pytest 179 passed** (mock mode). One test (`test_completing_triage_marks_habit_day`) depended on the calendar date (fixture corpus dated 2026-11-06, endpoint used the wall clock); it now pins the router clock.
+  - Web: tsc + eslint clean, **Vitest 35 passed** (9 files), **Playwright 19 passed** in 1.8 min (16 desktop + 3 mobile @375 px), covering M0–M10 screens: onboarding, Today, Brief triage, story page, Studio (angles → graded draft → Ready gate → repurpose), Lab, Gym (6 tabs), Moat, Reviews wizards, Channels, Ask (streaming + citations + not-in-KB), search palette, Library, Analytics, Ops (7 tabs).
+  - M4: angles + graded draft in **0.43 s** with mock LLM (target < 60 s); Ready gate blocks banned phrases, em dashes and unsupported claims without a written override; ask-me answers land in `raw_materials`; LinkedIn → X thread repurpose tested.
+  - M5: carousel PNGs 1080×1350 + PDF, contrast ≥ 4.5 and font ≥ 28 px checked; reel hook ≤ 2 s and 30–60 s total validated; article export Markdown with front-matter; Hashnode publish only with flag + token + Ready + explicit confirm (mock transport).
+  - M6–M8: ≤ 1 spark/brief above threshold; ≥ 2 evidence links per idea; build-brief zip (BRIEF.md + CLAUDE.md); build log → Studio draft using only log facts; learn-next 3 cited items; explainer → cards; FSRS-4.5 unit-tested; Moat Radar with evidence links; every default routine runs in mock mode; Telegram commands against a mock Bot API; notification cap 4/day + quiet hours; weekly review completable in the UI (e2e).
+  - M9: Telegram `/metrics` stores snapshots; baseline comparison; accepted learnings create voice v2; Ask answers fixture questions with correct citations and says "Not in your knowledge base" otherwise; Obsidian vault export (front-matter + wikilinks) validated.
+  - M10 performance (`scripts/perf.py`, mock LLM, e2e demo DB): brief generate **0.39 s**; p95 today **27.6 ms**, story page **21.1 ms**, search **22.4 ms**, stories list **25 ms**; all §16.1 targets passed. Live Claude latency not measured (CLI login expired at build time).
+  - Restore drill: dump **212,720 bytes**, restore **4.6 s** into `signal_restore_drill`, row counts match on 9 tables. Budget soft (80% → deep downgraded, insights capped) and hard (fast + user-initiated only) limits verified by tests. `pip-audit` and `pnpm audit`: no known vulnerabilities. Evals harness: all targets passed.
+  - 7-day time-travel simulation: 7 daily/weekend briefs, 7 nightly maintenance runs, 1 weekly review, 0 failed runs, no manual steps.
+  - Security review fixes landed: TOTP/API-token re-auth, SSRF guard, safe URLs in the UI, MCP config without DB credentials (0600), backups via PGPASSWORD with scrubbed errors.
 - 2026-11-07 — **M1 Ingestion done.**
   - Starter pack: 59 sources in `config/sources.yaml`. 54 enabled sources verified live by `scripts/verify_sources.py` (0 failing); 5 are credential/flag-gated (ADR-012).
   - Fixture acceptance (`tests/integration/test_ingest.py`): idempotent re-run adds 0 items; near-dup recall **20/20 = 100%** with 0 false positives; broken source flagged on the 3rd consecutive failure; a failed source doesn't block others; HN points merge into the official item.

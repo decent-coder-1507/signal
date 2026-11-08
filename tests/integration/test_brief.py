@@ -133,7 +133,19 @@ async def client(seeded: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
         yield c
 
 
-async def test_completing_triage_marks_habit_day(client: httpx.AsyncClient, seeded: AsyncSession) -> None:
+class _PinnedDatetime(datetime):
+    @classmethod
+    def now(cls, tz: object = None) -> "_PinnedDatetime":  # type: ignore[override]
+        return cls.fromtimestamp((NOW + timedelta(hours=1)).timestamp(), tz=UTC)
+
+
+async def test_completing_triage_marks_habit_day(
+    client: httpx.AsyncClient, seeded: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The fixture corpus is dated NOW; pin the briefs router's clock so it stays inside the brief window.
+    import signal_api.routers.briefs as briefs_router
+
+    monkeypatch.setattr(briefs_router, "datetime", _PinnedDatetime)
     b = (await client.post("/briefs/generate", json={"kind": "daily"})).json()
     assert b["content"]["stories"]
     latest = (await client.get("/briefs/latest")).json()

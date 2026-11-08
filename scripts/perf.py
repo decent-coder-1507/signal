@@ -39,8 +39,10 @@ async def main() -> dict[str, Any]:
     pw = os.environ.get("SIGNAL_ADMIN_PASSWORD", "e2e-password-123")
     app = create_app()
     out: dict[str, Any] = {}
-    async with LifespanManager(app), httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
-                                                       base_url="http://perf", timeout=600) as c:
+    async with (
+        LifespanManager(app),
+        httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://perf", timeout=600) as c,
+    ):
         r = await c.post("/auth/login", json={"email": email, "password": pw})
         r.raise_for_status()
         c.headers["x-csrf-token"] = r.json()["csrf"]
@@ -55,16 +57,25 @@ async def main() -> dict[str, Any]:
         out["story_page"] = await timed(c, "GET", f"/stories/{stories[0]['id']}")
         out["search"] = await timed(c, "GET", "/search?q=open weights coding agent")
         t0 = time.perf_counter()
-        angles = (await c.post("/studio/angles", json={"seed_type": "story", "seed_id": stories[0]["id"]})).json()
+        angles = (
+            await c.post("/studio/angles", json={"seed_type": "story", "seed_id": stories[0]["id"]})
+        ).json()
         idea = next((a for a in angles if not a["needs_input"]), angles[0])
-        await c.post("/studio/drafts", json={"content_idea_id": idea["id"], "platforms": ["linkedin"],
-                                             "skip_questions": True})
+        await c.post(
+            "/studio/drafts",
+            json={"content_idea_id": idea["id"], "platforms": ["linkedin"], "skip_questions": True},
+        )
         out["angles_plus_graded_draft_s"] = round(time.perf_counter() - t0, 2)
     out["targets_ms"] = TARGETS_MS
-    out["passed"] = (all(out[k]["p95_ms"] <= v for k, v in TARGETS_MS.items())
-                     and out["angles_plus_graded_draft_s"] < 60 and out["brief_generate_s"] < 600)
-    out["note"] = ("Mock LLM: measures SIGNAL's own overhead. Live Claude Runner latency adds the model time "
-                   "(see docs/PROGRESS.md).")
+    out["passed"] = (
+        all(out[k]["p95_ms"] <= v for k, v in TARGETS_MS.items())
+        and out["angles_plus_graded_draft_s"] < 60
+        and out["brief_generate_s"] < 600
+    )
+    out["note"] = (
+        "Mock LLM: measures SIGNAL's own overhead. Live Claude Runner latency adds the model time "
+        "(see docs/PROGRESS.md)."
+    )
     return out
 
 

@@ -86,8 +86,11 @@ function StoryView({ data }: { data: StoryDetail }) {
         {ins?.reading_time ? ` · ${ins.reading_time} min primary read` : ""}
       </p>
 
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <StoryActionBar id={s.id} title={s.title} followed={s.followed} />
+        <Link href={`/gym?tab=explain&topic=${encodeURIComponent(s.title.slice(0, 200))}&story=${s.id}`} className="text-sm text-accent underline">
+          Explain this
+        </Link>
       </div>
 
       {!ins && <p className="mt-6 text-sm text-muted">No insight has been generated for this story yet.</p>}

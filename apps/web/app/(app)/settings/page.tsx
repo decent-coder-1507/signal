@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { ChannelsTab } from "@/components/settings/channels-tab";
 import { FlagsTab } from "@/components/settings/flags-tab";
 import { ProfileTab } from "@/components/settings/profile-tab";
 import { RoutinesTab } from "@/components/settings/routines-tab";
@@ -18,6 +19,7 @@ const TABS = [
   { id: "sources", label: "Sources" },
   { id: "routines", label: "Routines" },
   { id: "watches", label: "Watches" },
+  { id: "channels", label: "Channels & notifications" },
   { id: "security", label: "Security" },
   { id: "flags", label: "Feature flags" },
 ] as const;
@@ -43,6 +45,7 @@ function SettingsInner() {
         {tab === "sources" && <SourcesTab />}
         {tab === "routines" && <RoutinesTab />}
         {tab === "watches" && <WatchesTab />}
+        {tab === "channels" && <ChannelsTab />}
         {tab === "security" && <SecurityTab />}
         {tab === "flags" && <FlagsTab />}
       </TabPanel>

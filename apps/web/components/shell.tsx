@@ -6,6 +6,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { ApiError, get, post } from "@/lib/api";
+import { Search } from "lucide-react";
+import { NotificationBell } from "./notification-bell";
+import { openSearch, SearchPalette } from "./search-palette";
 
 export type Me = {
   id: string;
@@ -55,9 +58,23 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto flex min-h-dvh max-w-[96rem]">
       <nav aria-label="Main" className="sticky top-0 hidden h-dvh w-52 shrink-0 flex-col gap-0.5 border-r border-border px-3 py-5 md:flex">
-        <Link href="/" className="mb-5 px-2 font-serif text-xl font-semibold tracking-tight">
-          SIGNAL
-        </Link>
+        <div className="mb-5 flex items-center justify-between px-2">
+          <Link href="/" className="font-serif text-xl font-semibold tracking-tight">
+            SIGNAL
+          </Link>
+          <span className="flex items-center">
+            <button
+              type="button"
+              aria-label="Search (Ctrl+K)"
+              title="Search (Ctrl+K)"
+              onClick={openSearch}
+              className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-text"
+            >
+              <Search size={18} aria-hidden />
+            </button>
+            <NotificationBell />
+          </span>
+        </div>
         {NAV.map((n) => (
           <Link
             key={n.href}
@@ -80,7 +97,16 @@ export function Shell({ children }: { children: ReactNode }) {
           Sign out
         </button>
       </nav>
-      <main className="min-w-0 flex-1 px-4 pb-24 pt-5 md:px-8 md:pb-10">{children}</main>
+      <main className="relative min-w-0 flex-1 px-4 pb-24 pt-11 md:px-8 md:pb-10 md:pt-5">
+        <div className="absolute right-3 top-3 z-30 flex items-center md:hidden">
+          <button type="button" aria-label="Search" onClick={openSearch} className="rounded-md p-1.5 text-muted hover:bg-surface-2">
+            <Search size={18} aria-hidden />
+          </button>
+          <NotificationBell />
+        </div>
+        {children}
+      </main>
+      <SearchPalette />
       <nav
         aria-label="Mobile"
         className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-border bg-surface/95 px-2 py-2 backdrop-blur md:hidden"

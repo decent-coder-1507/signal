@@ -80,9 +80,11 @@ def ensure_wsl_docker() -> None:
     if shutil.which("docker"):
         return
     distro = os.environ.get("SIGNAL_WSL_DISTRO", "Alpine")
-    script = ("docker info >/dev/null 2>&1 || { rm -f /var/run/docker.pid; "
-              "setsid nohup dockerd > /var/log/dockerd-manual.log 2>&1 < /dev/null & }; "
-              "i=0; while [ $i -lt 40 ]; do docker info >/dev/null 2>&1 && exit 0; sleep 2; i=$((i+1)); done; exit 1")
+    script = (
+        "docker info >/dev/null 2>&1 || { rm -f /var/run/docker.pid; "
+        "setsid nohup dockerd > /var/log/dockerd-manual.log 2>&1 < /dev/null & }; "
+        "i=0; while [ $i -lt 40 ]; do docker info >/dev/null 2>&1 && exit 0; sleep 2; i=$((i+1)); done; exit 1"
+    )
     rc = subprocess.call(["wsl", "-d", distro, "-u", "root", "--", "sh", "-c", script])
     if rc != 0:
         sys.exit("Docker daemon in WSL did not start; see /var/log/dockerd-manual.log inside the distro")

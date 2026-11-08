@@ -236,9 +236,17 @@ function BriefView({ brief }: { brief: Brief }) {
         <Card className="mt-3">
           <CardTitle>Learn</CardTitle>
           <p className="text-sm">{c.learn.label ?? c.learn.skill}</p>
-          <Link href={`/stories/${c.learn.story_id}`} className="mt-1 inline-block text-xs text-accent underline">
-            From today&apos;s story
-          </Link>
+          <div className="mt-1 flex flex-wrap gap-3 text-xs">
+            <Link
+              href={`/gym?tab=explain&topic=${encodeURIComponent(c.learn.skill ?? c.learn.label ?? "")}&story=${c.learn.story_id}`}
+              className="text-accent underline"
+            >
+              Read the explainer
+            </Link>
+            <Link href={`/stories/${c.learn.story_id}`} className="text-muted underline">
+              From today&apos;s story
+            </Link>
+          </div>
         </Card>
       )}
 

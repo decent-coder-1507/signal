@@ -22,7 +22,8 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `python -m uv run --directory ${root} uvicorn signal_api.main:app --port ${API_PORT}`,
+      // `python -m uvicorn` (not the uvicorn.exe shim): Windows Application Control can block venv launcher exes.
+      command: `python -m uv run --directory ${root} python -m uvicorn signal_api.main:app --port ${API_PORT}`,
       url: `http://localhost:${API_PORT}/health`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

@@ -11,7 +11,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { get, post } from "@/lib/api";
 import { habitProgress } from "@/lib/habit";
-import { errMsg, useCompleteBrief, useGenerateBrief, useToday } from "@/lib/hooks";
+import { errMsg, useCompleteBrief, useGenerateBrief, useLatestBrief, useToday } from "@/lib/hooks";
 import { BRIEF_KIND, fmtDateTime, humanize } from "@/lib/labels";
 import type { Notification, Today } from "@/lib/types";
 
@@ -27,7 +27,9 @@ export default function TodayPage() {
   const generate = useGenerateBrief();
   const complete = useCompleteBrief();
   const t = today.data;
-  const brief = t?.brief;
+  // GET /today returns the newest Brief row of any kind (weekly/monthly reviews too), so use the daily-brief query.
+  const latest = useLatestBrief();
+  const brief = latest.data ?? (Array.isArray(t?.brief?.content?.stories) ? t?.brief : null);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -117,6 +119,12 @@ export default function TodayPage() {
               <Card>
                 <CardTitle>Learn</CardTitle>
                 <p className="text-sm">{brief.content.learn.label ?? brief.content.learn.skill}</p>
+                <Link
+                  href={`/gym?tab=explain&topic=${encodeURIComponent(brief.content.learn.skill ?? brief.content.learn.label ?? "")}&story=${brief.content.learn.story_id}`}
+                  className="mt-1 inline-block text-xs text-accent underline"
+                >
+                  Read the explainer
+                </Link>
               </Card>
             )}
             <Card>
@@ -143,6 +151,9 @@ export default function TodayPage() {
                 {t.cards_due > 0 ? (
                   <>
                     <span className="font-semibold tabular-nums">{t.cards_due}</span> cards ready for review
+                    <Link href="/gym?tab=cards" className={buttonClass("primary", "sm", "mt-2 flex w-fit")}>
+                      Review cards
+                    </Link>
                   </>
                 ) : (
                   <span className="text-muted">Nothing due — you&apos;re clear.</span>

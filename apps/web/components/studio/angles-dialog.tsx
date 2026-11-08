@@ -14,7 +14,7 @@ import { errMsg } from "@/lib/hooks";
 import { humanize } from "@/lib/labels";
 import { PLATFORMS, type ContentIdea, type Draft } from "@/lib/studio-types";
 
-export type Seed = { seed_type: "story" | "item" | "free_text"; seed_id?: string; seed_text?: string; title?: string };
+export type Seed = { seed_type: "story" | "item" | "free_text" | "build_log"; seed_id?: string; seed_text?: string; title?: string };
 
 const Ctx = createContext<(seed: Seed | null) => void>(() => {});
 

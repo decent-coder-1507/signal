@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bell, BookOpen, EyeOff, Hammer, PenLine, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -11,16 +12,13 @@ import { errMsg } from "@/lib/hooks";
 
 export type ActionKind = "post" | "build" | "learn" | "watch" | "follow" | "ignore";
 
-const LATER: Record<"build" | "learn", string> = {
-  build: "Noted as a build idea — Lab arrives in a later milestone",
-  learn: "Noted to learn — Gym arrives in a later milestone",
-};
 
 /** One handler for the story action buttons (§6.8/§14), shared by brief cards and the story page. */
 export function useStoryAction() {
   const toast = useToast();
   const qc = useQueryClient();
   const startPost = useStartPost();
+  const router = useRouter();
   return useMutation({
     mutationFn: async (v: { kind: ActionKind; id: string; title: string; followed?: boolean }) => {
       switch (v.kind) {
@@ -31,10 +29,15 @@ export function useStoryAction() {
           await post("/habit/mark", { step: "action" });
           return null;
         case "build":
-        case "learn":
-          await post("/feedback", { target_type: "story", target_id: v.id, kind: "used", context: { action: v.kind } });
+          await post("/feedback", { target_type: "story", target_id: v.id, kind: "used", context: { action: "build" } });
           await post("/habit/mark", { step: "action" });
-          return LATER[v.kind];
+          return "Noted as a build signal — Lab weighs it in the next spark run";
+        case "learn":
+          // Opens a GYM explainer grounded in this story (§9.3).
+          await post("/feedback", { target_type: "story", target_id: v.id, kind: "used", context: { action: "learn" } });
+          await post("/habit/mark", { step: "action" });
+          router.push(`/gym?tab=explain&topic=${encodeURIComponent(v.title.slice(0, 200))}&story=${v.id}`);
+          return null;
         case "watch":
           await post("/watches", { query: v.title.slice(0, 500), urgency: "digest" });
           return `Watching: “${v.title}”`;
