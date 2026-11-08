@@ -8,6 +8,7 @@ Built on MCP Python SDK 2.x (`MCPServer`, formerly FastMCP), verified 2026-11-08
 from __future__ import annotations
 
 import json
+import os
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -123,20 +124,18 @@ async def latest_brief(kind: str = "daily") -> dict[str, Any]:
 
 
 def write_config(path: Path | None = None) -> Path:
-    """MCP client config for the Claude Runner / your Claude apps."""
+    """MCP client config for the Claude Runner / your Claude apps. No secrets in the file: the server is launched
+    from the repo directory and reads the database URL from `.env` via settings."""
     s = get_settings()
     path = path or s.data_dir / "mcp-signal.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    cfg = {
-        "mcpServers": {
-            "signal": {
-                "command": "uv",
-                "args": ["run", "--directory", str(REPO_ROOT), "python", "-m", "signal_core.mcp.server"],
-                "env": {"SIGNAL_DATABASE_URL": s.database_url, "SIGNAL_MODE": s.mode},
-            }
-        }
-    }
-    path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    cfg = {"mcpServers": {"signal": {
+        "command": "uv", "args": ["run", "--directory", str(REPO_ROOT), "python", "-m", "signal_core.mcp.server"],
+        "env": {"SIGNAL_MODE": s.mode},
+    }}}
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2)
     return path
 
 
