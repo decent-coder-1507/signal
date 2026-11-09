@@ -102,6 +102,13 @@ Status legend: ☐ not started · ◐ in progress · ☑ done (all acceptance cr
 - [x] 7 consecutive days of briefs without manual intervention: **time-travel simulation** (live LLM not available, CLI login expired)
 
 ## Log
+- 2026-11-09 — **Health check, Linux toolchain, redesign.**
+  - Live Claude Runner verified end to end: 61 real calls (enrich, judge, insights, studio, ask, explainer, spark), 0 errors; 14/14 insights pass the citation check; Ask answers "not in your knowledge base" for an unknowable question.
+  - Bugs found and fixed: one malformed scraped URL (`localhost:11434.`) crashed scoring; brief one-liners broke on real citation style; onboarding budget was ignored; story "Build" did nothing; wide-lens stories could enter the brief; LLM cache insert raced; drafts took 256 s live (checks now concurrent); restore failed on Linux/VPS (masked password, then PG17 client vs PG16 server); API committed after sending the response (race → 404); date-dependent tests; WSL helper re-parsed its script.
+  - No `.env` existed, so everything had run on defaults (mock mode, placeholder secrets): live mode now refuses placeholders; `dev.py init-env` creates `.env`. The main DB's 300 enrichments / 253 stories were produced by the mock provider and must be reset before going live.
+  - Windows Application Control blocks native binaries (SQLAlchemy/mypy C extensions, uvicorn/arq/mypy launchers, Next SWC, Tailwind oxide). Dev and tests now run in a Linux toolbox container (`python scripts/dev.py linux <cmd>`, ADR-024); the full stack runs in Alpine Docker (ADR-023).
+  - Redesign merged (ADR-025): bento light + midnight dark + editorial story header, theme toggle; screenshots in `docs/design/screens/`.
+  - Gate on Linux: ruff/format/mypy/eslint/tsc clean, **pytest 184 passed**, **Vitest 35 passed**, **Playwright 23 passed** (desktop + 375 px, incl. visual spec).
 - 2026-11-08 — **Post-v1 fixes (gaps found while building the web UI).**
   - `GET /today` returns only daily/catch-up/weekend briefs, never a weekly/monthly review; Today uses it directly again.
   - Explainers return `sources` (id, title, URL, source) for their citations; the Gym explainer shows numbered footnotes with a linked source list.
