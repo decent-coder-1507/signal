@@ -32,7 +32,7 @@ export function HealthTab() {
       {h ? (
         <dl className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
           <div className="bento-invert p-5">
-            <dt className="text-[12.5px] font-medium text-[var(--invert-muted)]">Status</dt>
+            <dt className="label text-[var(--invert-muted)]">Status</dt>
             <dd className="mt-1.5 flex items-center gap-2">
               <span
                 className={clsx("glow h-2.5 w-2.5 rounded-full", h.status === "ok" ? "bg-[var(--invert-mark)]" : "bg-warn")}
@@ -254,7 +254,7 @@ export function CostsTab() {
       <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
         <Card invert className="col-span-2 flex flex-col justify-between">
           <dl>
-            <dt className="text-[12.5px] font-medium text-[var(--invert-muted)]">LLM spend · month</dt>
+            <dt className="label text-[var(--invert-muted)]">LLM spend · month</dt>
             <dd className="num mt-1.5 text-[40px] font-semibold leading-none">
               {usd(c.month_spent)}
               <span className="ml-1.5 font-sans text-sm font-normal tracking-normal text-[var(--invert-muted)]">of {usd(c.limit, 0)}</span>

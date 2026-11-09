@@ -79,9 +79,11 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh">
+      {/* The rail paints the full page height; the nav inside stays pinned while the page scrolls. */}
+      <div className="hidden w-[220px] shrink-0 border-r border-[var(--sidebar-border)] bg-sidebar md:block">
       <nav
         aria-label="Main"
-        className="sticky top-0 hidden h-dvh w-[220px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-[var(--sidebar-border)] bg-sidebar px-3 py-5 md:flex"
+        className="sticky top-0 flex h-dvh flex-col gap-0.5 overflow-y-auto px-3 py-5"
       >
         <div className="mb-5 flex items-center justify-between pl-2">
           <Link href="/" className="flex items-center gap-2 text-[17px] font-bold tracking-tight">
@@ -142,6 +144,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </button>
         </div>
       </nav>
+      </div>
       <main className="relative min-w-0 flex-1 px-4 pb-28 pt-16 md:px-8 md:pb-12 md:pt-8 lg:px-10">
         <div className="absolute inset-x-0 top-0 z-30 flex h-12 items-center justify-between border-b border-[var(--sidebar-border)] bg-sidebar px-4 md:hidden">
           <Link href="/" className="flex items-center gap-2 text-[15px] font-bold tracking-tight">

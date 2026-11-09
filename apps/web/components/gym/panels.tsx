@@ -236,7 +236,7 @@ export function ProgressPanel() {
     <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
       <Card invert className="col-span-2 flex flex-col justify-between lg:col-span-1">
         <dl>
-          <dt className="text-[12.5px] font-medium text-[var(--invert-muted)]">Learning streak</dt>
+          <dt className="label text-[var(--invert-muted)]">Learning streak</dt>
           <dd className="num mt-1.5 text-[40px] font-semibold leading-none text-[var(--invert-mark)]">
             {p.learning_streak}
             <span className="ml-1.5 font-sans text-sm font-normal tracking-normal text-[var(--invert-muted)]">

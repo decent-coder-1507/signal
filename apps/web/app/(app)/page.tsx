@@ -138,8 +138,8 @@ export default function TodayPage() {
             <CardTitle>This month</CardTitle>
             <dl className="grid grid-cols-3 gap-2 lg:grid-cols-1 lg:gap-3">
               {Object.entries(t.this_month).map(([k, v]) => (
-                <div key={k} className="flex flex-col gap-0.5 lg:flex-row lg:items-baseline lg:justify-between">
-                  <dt className="text-xs text-muted lg:order-2">{k === "pocs" ? "POCs" : humanize(k)}</dt>
+                <div key={k} className="flex flex-col gap-0.5 lg:flex-row lg:items-baseline lg:justify-between lg:border-b lg:border-border lg:pb-2.5 lg:last:border-0">
+                  <dt className="text-xs text-muted lg:text-sm">{k === "pocs" ? "POCs" : humanize(k)}</dt>
                   <dd className="num text-2xl font-semibold leading-none">{v}</dd>
                 </div>
               ))}
@@ -218,7 +218,7 @@ function Progress({ t }: { t: Today }) {
           </text>
         </svg>
         <div className="min-w-0 flex-1">
-          <p className="text-[12.5px] font-medium text-[var(--invert-muted)]">Today</p>
+          <p className="label text-[var(--invert-muted)]">Today</p>
           <ol className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
             {STEPS.map((s) => (
               <li

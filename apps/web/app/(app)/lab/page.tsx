@@ -50,7 +50,7 @@ export default function LabPage() {
             {IDEA_STATUSES.map((s) => {
               const col = ideas.filter((i) => i.status === s);
               return (
-                <section key={s} aria-label={humanize(s)} data-testid={`lab-column-${s}`} className="min-w-0 rounded-[18px] border border-border bg-sidebar p-2.5">
+                <section key={s} aria-label={humanize(s)} data-testid={`lab-column-${s}`} className="min-h-48 min-w-0 rounded-[18px] border border-border bg-sidebar p-2.5">
                   <h2 className="mb-2 flex items-center justify-between px-1 font-mono text-[11px] font-medium uppercase tracking-wider text-muted">
                     {humanize(s)} <span className="chip num">{col.length}</span>
                   </h2>

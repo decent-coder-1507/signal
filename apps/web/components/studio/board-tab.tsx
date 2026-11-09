@@ -31,7 +31,7 @@ export function BoardTab() {
           {COLS.map((c) => {
             const cards = q.data[c.id] ?? [];
             return (
-              <section key={c.id} aria-label={c.label} data-testid={`column-${c.id}`} className="min-w-0 rounded-[18px] border border-border bg-sidebar p-2.5">
+              <section key={c.id} aria-label={c.label} data-testid={`column-${c.id}`} className="min-h-48 min-w-0 rounded-[18px] border border-border bg-sidebar p-2.5">
                 <h2 className="mb-2 flex items-center justify-between px-1 font-mono text-[11px] font-medium uppercase tracking-wider text-muted">
                   {c.label}
                   <span className="chip num">{cards.length}</span>

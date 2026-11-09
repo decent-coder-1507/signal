@@ -45,6 +45,8 @@ test.describe("visual screenshots @mobile", () => {
         await s.ready(page);
         await page.waitForLoadState("networkidle").catch(() => undefined);
         await page.evaluate(() => document.fonts.ready);
+        // Hide the Next.js dev-mode badge; it is not part of the app.
+        await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
         await page.screenshot({ path: join(out, `${s.name}-${scheme}-${device}.png`), fullPage: true });
         const width = await page.evaluate(() => document.documentElement.scrollWidth);
         const viewport = page.viewportSize()?.width ?? 0;

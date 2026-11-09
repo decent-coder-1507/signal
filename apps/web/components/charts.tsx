@@ -38,9 +38,9 @@ export function LineChart({
           </text>
         </g>
       )}
-      <path d={d} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" />
+      <path d={d} fill="none" stroke="var(--signal)" className="glow-mark" strokeWidth={2} strokeLinejoin="round" />
       {points.map((p, i) => (
-        <circle key={i} cx={x(i)} cy={y(p.y)} r={2.5} fill="var(--accent)">
+        <circle key={i} cx={x(i)} cy={y(p.y)} r={2.5} fill="var(--signal)">
           <title>
             {p.x}: {p.y}
           </title>
@@ -77,8 +77,18 @@ export function BarChart({ bars, label, height = 140, format = (v: number) => v.
       ))}
       {bars.map((b, i) => {
         const bh = (b.y / max) * (h - pad.t - pad.b);
+        const rw = Math.min(bw * 0.7, 28);
         return (
-          <rect key={b.x} x={pad.l + i * bw + bw * 0.15} y={h - pad.b - bh} width={bw * 0.7} height={Math.max(bh, b.y > 0 ? 1 : 0)} rx={2} fill="var(--accent)">
+          <rect
+            key={b.x}
+            className="glow-mark"
+            x={pad.l + i * bw + (bw - rw) / 2}
+            y={h - pad.b - bh}
+            width={rw}
+            height={Math.max(bh, b.y > 0 ? 1 : 0)}
+            rx={3}
+            fill="var(--signal)"
+          >
             <title>
               {b.x}: {format(b.y)}
             </title>

@@ -24,7 +24,7 @@ export function RadarChart({
   const rings = [0.25, 0.5, 0.75, 1];
   return (
     <figure className="flex flex-col items-center">
-      <svg viewBox={`0 0 ${size} ${size}`} width="100%" style={{ maxWidth: size }} role="img" aria-label={label}>
+      <svg viewBox={`-64 0 ${size + 128} ${size}`} width="100%" style={{ maxWidth: size + 128 }} role="img" aria-label={label}>
         {rings.map((f) => (
           <polygon
             key={f}
@@ -41,7 +41,7 @@ export function RadarChart({
             <g key={a}>
               <line x1={c} y1={c} x2={x} y2={y} stroke="var(--border)" strokeWidth={1} />
               <text x={lx} y={ly} fontSize={9} fill="var(--muted)" textAnchor={lx < c - 4 ? "end" : lx > c + 4 ? "start" : "middle"} dominantBaseline="middle">
-                {a.length > 16 ? a.slice(0, 15) + "…" : a}
+                {a.length > 22 ? a.slice(0, 21) + "…" : a}
               </text>
             </g>
           );
