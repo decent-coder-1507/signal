@@ -23,6 +23,7 @@ from signal_core.llm.provider import LLMUnavailable
 from signal_core.radar.jobs import ingest_all_due
 from signal_core.radar.pipeline import process
 from signal_core.routines.engine import next_fire
+from signal_core.services.settings_store import set_setting
 from signal_core.settings import get_settings
 
 EMAIL, PW = "owner@test.local", "correct horse battery"
@@ -115,6 +116,11 @@ async def test_costs_page_reflects_budget_states(client: httpx.AsyncClient) -> N
         )
     c = (await client.get("/costs")).json()
     assert c["state"] == "hard" and c["projected"] >= c["month_spent"]
+    # The monthly budget set in onboarding overrides config: $31 spent of $100 is fine again.
+    async with session_scope() as s:
+        await set_setting(s, "budget_monthly_usd", 100)
+    c = (await client.get("/costs")).json()
+    assert c["limit"] == 100 and c["state"] == "ok"
     led = (await client.get("/llm-calls?limit=5")).json()
     assert len(led) == 5 and {"task", "model", "cost_usd", "status"} <= set(led[0])
 

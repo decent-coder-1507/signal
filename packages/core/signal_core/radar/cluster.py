@@ -205,6 +205,7 @@ async def trace_primary_sources(session: AsyncSession) -> int:
         blob = f"{it.text or ''} {(it.signal_meta or {}).get('arxiv_url', '')}"
         targets: list[Item] = []
         for u in URL_RX.findall(blob):
+            u = u.rstrip(".,;:!?)]'\"")  # trailing sentence punctuation is not part of the link
             hit = (
                 (await session.execute(select(Item).where(Item.canonical_url == canonical_url(u))))
                 .scalars()

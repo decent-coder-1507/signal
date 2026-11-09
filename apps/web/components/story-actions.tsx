@@ -31,7 +31,12 @@ export function useStoryAction() {
         case "build":
           await post("/feedback", { target_type: "story", target_id: v.id, kind: "used", context: { action: "build" } });
           await post("/habit/mark", { step: "action" });
-          return "Noted as a build signal — Lab weighs it in the next spark run";
+          {
+            // Turns the story into a shortlisted Lab idea (§6.7) and opens it.
+            const ideas = await post<{ id: string; title: string }[]>(`/stories/${v.id}/build`);
+            if (ideas[0]) router.push(`/lab/${ideas[0].id}`);
+            return ideas.length > 1 ? `${ideas.length} ideas added to Lab` : "Added to Lab";
+          }
         case "learn":
           // Opens a GYM explainer grounded in this story (§9.3).
           await post("/feedback", { target_type: "story", target_id: v.id, kind: "used", context: { action: "learn" } });
@@ -56,6 +61,7 @@ export function useStoryAction() {
       if (v.kind === "watch") qc.invalidateQueries({ queryKey: ["watches"] });
       if (v.kind === "follow") qc.invalidateQueries({ queryKey: ["story", v.id] });
       if (["post", "build", "learn"].includes(v.kind)) qc.invalidateQueries({ queryKey: ["today"] });
+      if (v.kind === "build") qc.invalidateQueries({ queryKey: ["lab"] });
     },
     onError: (e) => toast(errMsg(e), "bad"),
   });

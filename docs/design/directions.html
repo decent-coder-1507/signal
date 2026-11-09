@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIGNAL design directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=Archivo:wght@500;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#e9e9ec;font-family:Inter,system-ui,sans-serif;color:#111;padding:40px 24px 80px}
+  .intro{max-width:1240px;margin:0 auto 28px}
+  .intro h1{font-size:26px;font-weight:700;letter-spacing:-.02em}
+  .intro p{color:#555;margin-top:6px;font-size:15px}
+  .dir{max-width:1240px;margin:0 auto 56px}
+  .dir-head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .dir-head .n{font:600 13px 'JetBrains Mono';background:#111;color:#fff;border-radius:6px;padding:3px 8px}
+  .dir-head h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .dir-head span{color:#555;font-size:14px}
+  .refs{font-size:12.5px;color:#666;margin:-4px 0 12px}
+  .frame{border-radius:20px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(0,0,0,.25),0 0 0 1px rgba(0,0,0,.06)}
+  .app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:640px}
+  .nav{padding:22px 16px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+  .nav .logo{font-weight:700;font-size:17px;margin:0 8px 20px;display:flex;align-items:center;gap:8px}
+  .nav a{padding:9px 12px;border-radius:10px;display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+  .nav .k{margin-left:auto;font:11px 'JetBrains Mono';opacity:.55}
+  .main{padding:28px 32px}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .ring{width:84px;height:84px}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  @media (max-width:900px){.app{grid-template-columns:1fr}.nav{display:none}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.span2,.span3,.span4{grid-column:span 2!important}}
+
+  /* ---------- A · Bento intelligence ---------- */
+  .A{background:#EEEFF2;color:#16181D}
+  .A .nav{background:#F7F7F9;border-right:1px solid #E3E4E8}
+  .A .nav a.on{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06);font-weight:600}
+  .A .nav a{color:#5B6070}.A .nav a.on{color:#16181D}
+  .A .logo i{width:22px;height:22px;border-radius:7px;background:#16181D;display:inline-block}
+  .A .card{background:#fff;border-radius:18px;padding:18px;border:1px solid #E6E7EB}
+  .A .lbl{font-size:12.5px;color:#6B7080;font-weight:500}
+  .A .num{font:600 30px 'JetBrains Mono';letter-spacing:-.04em;margin-top:6px}
+  .A .pill{font:600 11px Inter;border-radius:999px;padding:3px 8px;background:#E7F6EC;color:#1F7A3D}
+  .A .dark{background:#16181D;color:#F2F3F5;border:none}
+  .A .dark .lbl{color:#9AA0AD}
+  .A .chip{font:500 11.5px Inter;border-radius:7px;padding:3px 9px;background:#F1F2F5;color:#3B404C}
+  .A .accent{color:#16A34A}
+  .A h1{font-size:26px;font-weight:700;letter-spacing:-.025em}
+  .A .story h3{font-size:19px;font-weight:600;letter-spacing:-.015em;line-height:1.35;margin:10px 0 8px}
+  .A .story p{color:#4A5060;line-height:1.65;font-size:14.5px}
+  .A sup{font:600 10px 'JetBrains Mono';color:#16A34A}
+  .A .why{background:#F5F7F6;border-radius:12px;padding:12px 14px;margin-top:12px;font-size:13.5px;color:#2D4A36}
+  .A kbd{font:500 11px 'JetBrains Mono';background:#F1F2F5;border:1px solid #E3E4E8;border-radius:6px;padding:2px 6px;color:#3B404C}
+
+  /* ---------- B · Aurora workspace ---------- */
+  .B{background:radial-gradient(1200px 500px at 15% -10%,#E9DDFF 0%,transparent 60%),radial-gradient(900px 600px at 95% 10%,#FFE3D3 0%,transparent 55%),radial-gradient(900px 600px at 60% 110%,#D6F5EA 0%,transparent 60%),#F8F7FB;color:#1C1A26;font-family:'Plus Jakarta Sans',sans-serif}
+  .B .nav{background:rgba(255,255,255,.45);backdrop-filter:blur(18px);border-right:1px solid rgba(255,255,255,.7)}
+  .B .nav a{color:#5E5A72}.B .nav a.on{background:rgba(255,255,255,.85);color:#1C1A26;font-weight:600;box-shadow:0 4px 14px -6px rgba(90,60,160,.25)}
+  .B .logo i{width:24px;height:24px;border-radius:50%;background:conic-gradient(from 200deg,#8B5CF6,#F97362,#34D399,#8B5CF6);display:inline-block}
+  .B .glass{background:rgba(255,255,255,.62);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.85);border-radius:22px;padding:18px;box-shadow:0 10px 30px -18px rgba(70,40,140,.35)}
+  .B h1{font-size:34px;font-weight:700;letter-spacing:-.03em;text-align:center}
+  .B .sub{text-align:center;color:#6B6782;margin-top:6px}
+  .B .ask{max-width:640px;margin:20px auto 26px;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 18px;border-radius:18px}
+  .B .ask input{flex:1;border:0;background:transparent;font:500 15px 'Plus Jakarta Sans';outline:0;color:#1C1A26}
+  .B .go{width:38px;height:38px;border-radius:12px;background:#1C1A26;color:#fff;display:grid;place-items:center;font-weight:700}
+  .B .lbl{font-size:12.5px;color:#6B6782;font-weight:600}
+  .B .num{font-size:30px;font-weight:800;letter-spacing:-.03em;margin-top:4px}
+  .B .chip{font:600 11.5px 'Plus Jakarta Sans';border-radius:999px;padding:4px 10px}
+  .B .story h3{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.3;margin:10px 0 8px}
+  .B .story p{color:#4C4862;line-height:1.7;font-size:14.5px}
+  .B sup{font:700 10px 'Plus Jakarta Sans';color:#7C3AED}
+  .B .why{background:linear-gradient(120deg,rgba(139,92,246,.12),rgba(52,211,153,.12));border-radius:14px;padding:12px 14px;margin-top:12px;font-size:13.5px;color:#3B2C6B}
+
+  /* ---------- C · Bold editorial ---------- */
+  .C{background:#FAF8F4;color:#111;font-family:Inter,sans-serif}
+  .C .nav{background:#111;color:#EDEBE6}
+  .C .nav a{color:#A9A59C}.C .nav a.on{background:#FF5A1F;color:#111;font-weight:700}
+  .C .logo{font-family:Archivo;font-weight:900;font-size:22px!important;letter-spacing:-.03em;color:#fff}
+  .C .logo b{color:#FF5A1F}
+  .C .mast{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:14px;margin-bottom:20px}
+  .C h1{font:900 54px/0.95 Archivo;letter-spacing:-.045em;text-transform:uppercase}
+  .C h1 em{font-family:'Instrument Serif';font-style:italic;font-weight:400;text-transform:none;letter-spacing:-.02em;color:#FF5A1F}
+  .C .meta{font:500 12px 'JetBrains Mono';text-align:right;color:#555;line-height:1.7}
+  .C .tabs{display:flex;gap:8px;margin-bottom:18px}
+  .C .tabs span{font:700 12px Archivo;border:2px solid #111;border-radius:999px;padding:6px 14px;text-transform:uppercase;letter-spacing:.02em}
+  .C .tabs span.on{background:#111;color:#FAF8F4}
+  .C .lead{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px}
+  .C .rank{font:900 96px/0.8 Archivo;color:#FF5A1F;letter-spacing:-.06em}
+  .C .story h3{font:800 32px/1.02 Archivo;letter-spacing:-.035em;margin:12px 0 12px}
+  .C .story p{font:400 19px/1.55 'Instrument Serif';color:#2a2a2a}
+  .C sup{font:700 11px 'JetBrains Mono';color:#FF5A1F}
+  .C .why{border-left:6px solid #FF5A1F;padding:6px 0 6px 14px;margin-top:14px;font:600 14px Inter}
+  .C .chip{font:700 11px Archivo;text-transform:uppercase;letter-spacing:.04em;border:1.5px solid #111;border-radius:4px;padding:3px 8px}
+  .C .side .item{border-top:2px solid #111;padding:12px 0}
+  .C .side .item b{font:800 18px/1.15 Archivo;letter-spacing:-.02em;display:block;margin-top:4px}
+  .C .stat{background:#111;color:#FAF8F4;border-radius:14px;padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+  .C .stat .num{font:900 40px Archivo;letter-spacing:-.04em;color:#FF5A1F}
+
+  /* ---------- D · Midnight pulse ---------- */
+  .D{background:#07080A;color:#E8EAED;font-family:'Space Grotesk',sans-serif}
+  .D .nav{background:#0C0E11;border-right:1px solid #1A1D22}
+  .D .nav a{color:#7D838D}.D .nav a.on{background:#14171C;color:#fff;box-shadow:inset 2px 0 0 #C6F432}
+  .D .logo i{width:22px;height:22px;border-radius:6px;background:#C6F432;display:inline-block;box-shadow:0 0 18px rgba(198,244,50,.5)}
+  .D .card{background:linear-gradient(180deg,#111418,#0D0F12);border:1px solid #1C2026;border-radius:18px;padding:18px}
+  .D .lbl{font:500 11.5px 'Geist Mono';letter-spacing:.06em;text-transform:uppercase;color:#7D838D}
+  .D .num{font:600 32px 'Space Grotesk';letter-spacing:-.04em;margin-top:6px}
+  .D .lime{color:#C6F432}
+  .D .chip{font:500 11px 'Geist Mono';border-radius:6px;padding:3px 8px;border:1px solid #2A3038;color:#B5BBC4}
+  .D .chip.l{border-color:rgba(198,244,50,.4);color:#C6F432;background:rgba(198,244,50,.07)}
+  .D h1{font-size:28px;font-weight:600;letter-spacing:-.03em}
+  .D .story h3{font-size:21px;font-weight:600;letter-spacing:-.025em;line-height:1.3;margin:12px 0 8px}
+  .D .story p{color:#A7ADB6;line-height:1.7;font-size:14.5px;font-family:Inter}
+  .D sup{font:600 10px 'Geist Mono';color:#C6F432}
+  .D .why{border:1px solid rgba(198,244,50,.25);background:rgba(198,244,50,.05);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:13.5px;color:#DCE7B5}
+  .D .bars{display:flex;align-items:flex-end;gap:5px;height:54px;margin-top:10px}
+  .D .bars i{flex:1;border-radius:3px;background:#20252C}
+  .D .bars i.on{background:#C6F432;box-shadow:0 0 12px rgba(198,244,50,.45)}
+  .D kbd{font:500 11px 'Geist Mono';border:1px solid #2A3038;border-radius:6px;padding:2px 6px;color:#B5BBC4}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>SIGNAL: four modern directions</h1>
+  <p>Each frame is the same Today screen with the top story from your brief. They draw on the Dribbble and Refero references noted under each title (inspiration only, not copies).</p>
+</div>
+
+<!-- ================= A ================= -->
+<section class="dir">
+  <div class="dir-head"><span class="n">A</span><h2>Bento intelligence</h2><span>Light grey canvas, white bento cards, mono numerals, one inverted dark tile</span></div>
+  <p class="refs">Inspired by: Zajno “Dashboard design for a Shopify intelligence platform” (Dribbble, 317k views); Phenomenon Studio SaaS dashboards</p>
+  <div class="frame A"><div class="app">
+    <nav class="nav">
+      <div class="logo"><i></i>Signal</div>
+      <a class="on">◎ Today</a><a>▤ Brief <span class="k">6</span></a><a>✎ Studio</a><a>⚗ Lab</a><a>◈ Gym</a><a>✦ Ask</a><a>▦ Library</a><a>◷ Ops</a>
+      <div style="margin-top:auto;font-size:12px;color:#8A8F9C;padding:0 12px">⌘K to search</div>
+    </nav>
+    <main class="main">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px">
+        <div><div class="lbl">Monday, 9 November</div><h1>Good morning, Srijoy</h1></div>
+        <div style="display:flex;gap:8px"><kbd>j</kbd><kbd>k</kbd><span class="lbl" style="align-self:center">to triage</span></div>
+      </div>
+      <div class="grid">
+        <div class="card dark" style="display:flex;gap:16px;align-items:center">
+          <svg class="ring" viewBox="0 0 42 42"><circle cx="21" cy="21" r="17" fill="none" stroke="#2A2E36" stroke-width="5"/><circle cx="21" cy="21" r="17" fill="none" stroke="#4ADE80" stroke-width="5" stroke-dasharray="71 107" stroke-linecap="round" transform="rotate(-90 21 21)"/></svg>
+          <div><div class="lbl">Today</div><div class="num" style="font-size:24px">2 / 3</div><div class="lbl" style="margin-top:2px">brief ✓ · action ✓ · cards</div></div>
+        </div>
+        <div class="card"><div class="lbl">Streak</div><div class="num">12<span style="font-size:15px;color:#6B7080"> days</span></div><span class="pill">2 freezes left</span></div>
+        <div class="card"><div class="lbl">Cards due</div><div class="num">18</div><span class="chip">≈ 4 min</span></div>
+        <div class="card"><div class="lbl">This month</div><div class="num">3 · 1 · 46</div><div class="lbl">posts · POCs · cards</div></div>
+        <div class="card story" style="grid-column:span 3">
+          <div style="display:flex;gap:6px;align-items:center"><span style="font:600 12px 'JetBrains Mono';color:#9AA0AD">01</span><span class="chip">Core</span><span class="chip">Durable</span><span class="chip" style="background:#E7F6EC;color:#1F7A3D">Hype low</span><span class="lbl" style="margin-left:auto">3 sources · 07:30</span></div>
+          <h3>Hidden instructions in repo files hijack three popular coding agents</h3>
+          <p>Researchers showed agents running shell commands planted in repository files, in default configurations.<sup>1</sup> Vendors recommend sandboxes and approval for shell commands.<sup>2</sup></p>
+          <div class="why"><b>Why it matters to you:</b> you point agents at freshly cloned repos every week.</div>
+          <div style="display:flex;gap:8px;margin-top:14px"><kbd>p</kbd><span class="lbl">post</span><kbd>b</kbd><span class="lbl">build</span><kbd>l</kbd><span class="lbl">learn</span><kbd>x</kbd><span class="lbl">skip</span></div>
+        </div>
+        <div class="card"><div class="lbl">Build spark</div><div style="font-weight:600;margin:8px 0 6px;line-height:1.35">repo-canary: scan repos for agent-targeted text</div><span class="chip">weekend build</span><div class="lbl" style="margin-top:10px">Lab score <b class="accent">0.81</b></div></div>
+      </div>
+    </main>
+  </div></div>
+</section>
+
+<!-- ================= B ================= -->
+<section class="dir">
+  <div class="dir-head"><span class="n">B</span><h2>Aurora workspace</h2><span>Soft pastel light wash, frosted glass panels, AI-first prompt at the centre</span></div>
+  <p class="refs">Inspired by: “Good morning” AI workspace shots on Dribbble (ai assistant web app search); frosted-panel AI tools on Refero</p>
+  <div class="frame B"><div class="app">
+    <nav class="nav">
+      <div class="logo"><i></i>Signal</div>
+      <a class="on">Today</a><a>Brief <span class="k">6</span></a><a>Studio</a><a>Lab</a><a>Gym</a><a>Ask</a><a>Library</a><a>Ops</a>
+    </nav>
+    <main class="main">
+      <h1>Good morning, Srijoy</h1>
+      <p class="sub">6 stories worth your 10 minutes · 18 cards due · 12-day streak</p>
+      <div class="glass ask"><span style="color:#8B5CF6">✦</span><input value="Ask your sources… e.g. what changed in Nimbus pricing?"><div class="go">→</div></div>
+      <div class="grid">
+        <div class="glass story" style="grid-column:span 3">
+          <div style="display:flex;gap:6px;align-items:center"><span class="chip" style="background:#EDE4FF;color:#5B21B6">Core</span><span class="chip" style="background:#DCF7EC;color:#047857">Durable</span><span class="chip" style="background:#FFE6DB;color:#B4400F">Hype low</span><span class="lbl" style="margin-left:auto">01 of 06</span></div>
+          <h3>Hidden instructions in repo files hijack three popular coding agents</h3>
+          <p>Researchers showed agents running shell commands planted in repository files, in default configurations.<sup>1</sup> Vendors recommend sandboxes and approval for shell commands.<sup>2</sup></p>
+          <div class="why"><b>Why it matters to you:</b> you point agents at freshly cloned repos every week.</div>
+        </div>
+        <div class="glass" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+          <svg class="ring" viewBox="0 0 42 42"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#34D399"/></linearGradient></defs><circle cx="21" cy="21" r="17" fill="none" stroke="rgba(120,100,180,.15)" stroke-width="5"/><circle cx="21" cy="21" r="17" fill="none" stroke="url(#g)" stroke-width="5" stroke-dasharray="71 107" stroke-linecap="round" transform="rotate(-90 21 21)"/></svg>
+          <div class="lbl">2 of 3 done today</div>
+        </div>
+        <div class="glass"><div class="lbl">Post suggestion</div><div style="font-weight:700;margin-top:8px;line-height:1.35">“Cloning a repo is running untrusted input”</div><span class="chip" style="background:#EDE4FF;color:#5B21B6;display:inline-block;margin-top:10px">LinkedIn · explainer</span></div>
+        <div class="glass"><div class="lbl">Build spark</div><div style="font-weight:700;margin-top:8px;line-height:1.35">repo-canary</div><div class="lbl" style="margin-top:6px">Weekend build · 0.81</div></div>
+        <div class="glass"><div class="lbl">Learn</div><div style="font-weight:700;margin-top:8px;line-height:1.35">Agent sandboxing</div><div class="lbl" style="margin-top:6px">Explainer + 4 cards</div></div>
+        <div class="glass"><div class="lbl">Cards due</div><div class="num">18</div></div>
+      </div>
+    </main>
+  </div></div>
+</section>
+
+<!-- ================= C ================= -->
+<section class="dir">
+  <div class="dir-head"><span class="n">C</span><h2>Bold editorial</h2><span>Modern magazine: heavy grotesk headlines, serif body, one hot orange accent</span></div>
+  <p class="refs">Inspired by: “What’s new today?” news app concepts (Dribbble, news reader app search); contemporary editorial sites with condensed grotesk + serif pairing</p>
+  <div class="frame C"><div class="app">
+    <nav class="nav">
+      <div class="logo">SIGNAL<b>.</b></div>
+      <a class="on">Today</a><a>Brief</a><a>Studio</a><a>Lab</a><a>Gym</a><a>Ask</a><a>Library</a><a>Ops</a>
+    </nav>
+    <main class="main">
+      <div class="mast"><h1>The morning <em>edition</em></h1><div class="meta">MON 09 NOV 2026<br>EDITION 042 · 6 STORIES<br>STREAK 12 ●●●●●●○</div></div>
+      <div class="tabs"><span class="on">All</span><span>Core</span><span>Adjacent</span><span>Updates</span></div>
+      <div class="lead">
+        <div class="story">
+          <div style="display:flex;gap:14px;align-items:flex-end"><div class="rank">01</div><div style="display:flex;gap:6px;padding-bottom:6px"><span class="chip">Core</span><span class="chip">Durable</span><span class="chip" style="background:#FF5A1F;border-color:#FF5A1F">Hype low</span></div></div>
+          <h3>Hidden instructions in repo files hijack three coding agents</h3>
+          <p>Researchers showed agents running shell commands planted in repository files, in default configurations.<sup>1</sup> Vendors recommend sandboxes and approval for shell commands.<sup>2</sup></p>
+          <div class="why">Why it matters to you: you point agents at freshly cloned repos every week.</div>
+        </div>
+        <div class="side">
+          <div class="stat"><div><div style="font:700 11px Archivo;text-transform:uppercase;letter-spacing:.06em;color:#A9A59C">Today</div><div style="font:600 14px Inter;margin-top:4px">Brief ✓ · Action ✓ · Cards</div></div><div class="num">2/3</div></div>
+          <div class="item"><span class="chip">02 · Core</span><b>Nimbus-4 launches at $3 per million input tokens</b></div>
+          <div class="item"><span class="chip">03 · Core</span><b>Kestrel 2.0 adds plan-then-execute and a sandboxed shell</b></div>
+          <div class="item"><span class="chip">04 · Adjacent</span><b>Tessera raises a Series B for inference chips</b></div>
+        </div>
+      </div>
+    </main>
+  </div></div>
+</section>
+
+<!-- ================= D ================= -->
+<section class="dir">
+  <div class="dir-head"><span class="n">D</span><h2>Midnight pulse</h2><span>Near-black bento, neon-lime signal colour, mono metadata, glowing data</span></div>
+  <p class="refs">Inspired by: AETHER protocol dark dashboard (Hesam Sanei) and 10am Space dark product UIs (Dribbble, dark bento dashboard search)</p>
+  <div class="frame D"><div class="app">
+    <nav class="nav">
+      <div class="logo"><i></i>signal</div>
+      <a class="on">Today</a><a>Brief <span class="k">6</span></a><a>Studio</a><a>Lab</a><a>Gym</a><a>Ask</a><a>Library</a><a>Ops</a>
+      <div style="margin-top:auto;font:11px 'Geist Mono';color:#5A606A;padding:0 12px">⌘K · ? shortcuts</div>
+    </nav>
+    <main class="main">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px">
+        <div><div class="lbl">Mon 09 Nov · 07:42 IST</div><h1>Good morning, Srijoy<span class="lime">.</span></h1></div>
+        <div style="display:flex;gap:6px"><kbd>j</kbd><kbd>k</kbd><kbd>p</kbd><kbd>b</kbd></div>
+      </div>
+      <div class="grid">
+        <div class="card"><div class="lbl">Today</div><div class="num">2<span style="color:#5A606A">/3</span></div><div class="bars"><i class="on" style="height:100%"></i><i class="on" style="height:100%"></i><i style="height:100%"></i></div></div>
+        <div class="card"><div class="lbl">Streak</div><div class="num lime">12d</div><div class="bars"><i class="on" style="height:40%"></i><i class="on" style="height:70%"></i><i class="on" style="height:55%"></i><i class="on" style="height:90%"></i><i class="on" style="height:65%"></i><i class="on" style="height:100%"></i><i style="height:30%"></i></div></div>
+        <div class="card"><div class="lbl">Cards due</div><div class="num">18</div><div class="lbl" style="margin-top:8px">retention <span class="lime">91%</span></div></div>
+        <div class="card"><div class="lbl">LLM spend · month</div><div class="num">$4.12</div><div class="lbl" style="margin-top:8px">of $30 · <span class="lime">ok</span></div></div>
+        <div class="card story" style="grid-column:span 3">
+          <div style="display:flex;gap:6px;align-items:center"><span style="font:600 12px 'Geist Mono';color:#5A606A">#01</span><span class="chip l">core</span><span class="chip">durable</span><span class="chip">hype 0.2</span><span class="lbl" style="margin-left:auto">3 src</span></div>
+          <h3>Hidden instructions in repo files hijack three popular coding agents</h3>
+          <p>Researchers showed agents running shell commands planted in repository files, in default configurations.<sup>[1]</sup> Vendors recommend sandboxes and approval for shell commands.<sup>[2]</sup></p>
+          <div class="why"><b>Why it matters to you:</b> you point agents at freshly cloned repos every week.</div>
+        </div>
+        <div class="card"><div class="lbl">Build spark</div><div style="font-weight:600;margin:10px 0 8px;line-height:1.35">repo-canary</div><span class="chip l">weekend build · 0.81</span></div>
+      </div>
+    </main>
+  </div></div>
+</section>
+
+</body>
+</html>

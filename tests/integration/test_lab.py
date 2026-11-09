@@ -22,7 +22,7 @@ from signal_core.llm.mock import GENERATORS
 from signal_core.radar.jobs import ingest_all_due
 from signal_core.radar.pipeline import process
 
-NOW = datetime(2026, 11, 6, 1, 0, tzinfo=UTC)
+NOW = datetime.now(UTC) - timedelta(hours=2)  # relative: endpoints use the wall clock
 EMAIL, PW = "owner@test.local", "correct horse battery"
 
 
@@ -180,3 +180,12 @@ async def test_prior_art_is_listed(seeded: AsyncSession) -> None:
     with_pa = [i for i in ideas if i.prior_art]
     assert with_pa and all(pa["url"].startswith("https://") for i in with_pa for pa in i.prior_art)
     _ = Idea
+
+
+async def test_build_action_turns_a_story_into_a_lab_idea(client: httpx.AsyncClient) -> None:
+    sid = (await client.get("/stories?limit=1")).json()["items"][0]["id"]
+    ideas = (await client.post(f"/stories/{sid}/build")).json()
+    assert ideas and all(i["status"] == "shortlisted" for i in ideas)
+    detail = (await client.get(f"/ideas/{ideas[0]['id']}")).json()
+    assert detail["evidence"]  # grounded in the story, never invented
+    assert (await client.post("/stories/00000000-0000-7000-8000-000000000000/build")).status_code == 404

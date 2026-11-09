@@ -7,6 +7,7 @@ from signal_core.truth import (
     check_citations,
     disallowed_urls,
     drop_uncited_sentences,
+    first_sentence,
     is_verbatim,
     validate_key_facts,
 )
@@ -92,3 +93,13 @@ def test_preference_model_learns_direction() -> None:
     y = [1, 1, 1, 0, 0, 0]
     w, b = train(X, y)
     assert predict(w, b, {"topic:agents"}) > 0.6 > 0.4 > predict(w, b, {"topic:crypto"})
+
+
+def test_first_sentence_keeps_citations_in_live_and_mock_styles() -> None:
+    a, b = "01a1bf2e-5371-768b-abbe-524abe9fc008", "01a1bf2e-50a0-706d-87d7-32543fc52aa3"
+    live = f"Nimbus-4 scores 71.2% on SWE-bench at $3 per 1M tokens [{a}][{b}]. The figures are self-reported [{a}]."
+    assert first_sentence(live) == f"Nimbus-4 scores 71.2% on SWE-bench at $3 per 1M tokens [{a}][{b}]."
+    mock = f"Kestrel v2.0.0 adds sandboxing. [{a}] It also supports ACP. [{b}]"
+    assert first_sentence(mock) == f"Kestrel v2.0.0 adds sandboxing. [{a}]"
+    assert first_sentence("One sentence without a full stop") == "One sentence without a full stop"
+    assert first_sentence(f"Only one. [{a}]") == f"Only one. [{a}]"

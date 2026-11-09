@@ -366,13 +366,13 @@ async def _search_links(db: DB, chunks: list[ask.Chunk]) -> dict[str, str | None
         )
         links |= {str(i): f"/stories/{s}" for i, s in rows.all()}
     if log_ids := ids("build_log"):
-        rows = await db.execute(select(BuildLog.id, BuildLog.idea_id).where(BuildLog.id.in_(log_ids)))
-        links |= {str(i): f"/lab/{idea}" for i, idea in rows.all()}
+        logs = await db.execute(select(BuildLog.id, BuildLog.idea_id).where(BuildLog.id.in_(log_ids)))
+        links |= {str(i): f"/lab/{idea}" for i, idea in logs.all()}
     if ex_ids := ids("explainer"):
-        rows = await db.execute(
+        exps = await db.execute(
             select(Explainer.id, Explainer.topic, Explainer.depth).where(Explainer.id.in_(ex_ids))
         )
-        links |= {str(i): f"/gym?tab=explain&topic={quote(t)}&depth={quote(d)}" for i, t, d in rows.all()}
+        links |= {str(i): f"/gym?tab=explain&topic={quote(t)}&depth={quote(d)}" for i, t, d in exps.all()}
     for c in chunks:
         if c.kind == "story":
             links[c.id] = f"/stories/{c.id}"

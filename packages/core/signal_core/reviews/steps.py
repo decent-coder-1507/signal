@@ -18,9 +18,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from signal_core.config import get_config
 from signal_core.db.models import Brief, Draft, HabitDay, LLMCall, Publication, Source, Story, StoryInsight
+from signal_core.llm import budget
 from signal_core.llm import router as llm
 from signal_core.llm.provider import BudgetExceeded, LLMError
 from signal_core.routines.engine import StepContext, step
+from signal_core.settings import get_settings
 
 WEEKLY_FLOW = ["recap", "content_plan", "idea", "learn", "quiz", "metrics"]
 MONTHLY_FLOW = ["state_of_tech", "moat", "content", "ideas", "skills", "tuning", "costs"]
@@ -295,13 +297,15 @@ async def cost_report(ctx: StepContext) -> dict[str, Any]:
         )
     ).all()
     total = sum(float(c or 0) for _t, c, _n in rows)
+    cfg = get_config()
+    limit = (await budget.status(ctx.session, cfg.budget, get_settings().timezone, ctx.now)).limit_usd
     return await _add(
         ctx,
         "monthly",
         {
             "key": "costs",
             "title": "Cost report",
-            "text": f"API-equivalent LLM cost over 30 days: ${total:.2f} (budget ${get_config().budget.monthly_usd:.0f}).",
+            "text": f"API-equivalent LLM cost over 30 days: ${total:.2f} (budget ${limit:.0f}).",
             "items": [
                 {"title": t, "sub": f"${float(c or 0):.3f} · {n} calls"}
                 for t, c, n in sorted(rows, key=lambda r: -float(r[1] or 0))[:10]

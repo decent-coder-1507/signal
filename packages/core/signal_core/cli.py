@@ -76,7 +76,7 @@ async def runner_check() -> dict[str, Any]:
     try:
         r = await p.complete(
             system="Reply with JSON only.",
-            messages=[Msg("user", 'Return {"answer":"ok"}')],
+            messages=[Msg("user", "Health check. Put the single word ok in the answer field.")],
             model="haiku",
             max_tokens=20,
             temperature=0,

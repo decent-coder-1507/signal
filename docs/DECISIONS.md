@@ -95,3 +95,16 @@ Researched from official docs (details and URLs in `config/platforms.yaml`). **L
 
 ## ADR-021 · Docker daemon in WSL (2026-11-08)
 The Alpine WSL distro isn't booted by OpenRC, so `rc-service docker start` fails and dockerd doesn't restart after a Windows reboot. `scripts/dev.py infra` now starts `dockerd` detached (`setsid nohup dockerd`) when the daemon isn't answering, then brings up `db` and `redis`. This touches no other project's containers.
+
+## ADR-022 · Windows Application Control blocks compiled files in the venv (2026-11-09)
+After a Windows restart, Application Control (Smart App Control) began refusing some unsigned binaries in `.venv`: SQLAlchemy's Cython extensions (`_collections_cy…pyd`), mypy's mypyc build (`fscache…pyd`), and the console launchers `uvicorn.exe`, `arq.exe` and `mypy.exe`. Changing Windows security settings is the user's call, so the project works around it instead:
+- `pyproject.toml` `[tool.uv] no-binary-package = ["sqlalchemy", "mypy"]`, with `DISABLE_SQLALCHEMY_CEXT=1` as a build variable. Both install as pure Python; both ship .py fallbacks. Performance targets have large headroom (p95 ~25 ms against 500–1500 ms), and the cost is the same on Linux/VPS.
+- `scripts/dev.py` and the Playwright web server start every tool as `python -m <tool>` instead of the `.exe` shims.
+- If another package gets blocked later, the error is `ImportError: DLL load failed … An Application Control policy has blocked this file`. Add that package to `no-binary-package` if it has a pure-Python build; otherwise allow the file in Windows Security.
+
+## ADR-023 · Docker on WSL: MTU, slow links, live config (2026-11-09)
+- WSL's `eth0` has MTU 1400, while Docker bridges default to 1500, so large TLS downloads stalled. SIGNAL's compose network sets `com.docker.network.driver.mtu: 1400` and image builds use `network: host`. The daemon config and other projects' containers are untouched.
+- The npm/CDN link here is slow (~850 KB/s) and pnpm/Playwright downloads time out. The web image installs with `--network-concurrency=2` in a retry loop over a BuildKit-cached pnpm store. The Python image installs dependencies and Chromium in layers keyed only on the lockfiles (retry loop for Chromium), so a code change rebuilds in about a minute.
+- Containers run `uv run --no-sync` and the web image starts `next start` directly (no Corepack download at runtime). Compose sets `SIGNAL_USE_REDIS_QUEUE=true` for the multi-container stack.
+- There was no `.env`, so everything ran on defaults (mock mode, placeholder secret). Live mode now refuses placeholder `SIGNAL_SECRET_KEY` / `SIGNAL_ADMIN_PASSWORD`. `python scripts/dev.py init-env` creates `.env` (0600) with generated secrets and never overwrites an existing one.
+- Windows Application Control later also blocked Next's native SWC and Tailwind's oxide binary. The Windows dev server uses `next dev --webpack` (WASM SWC), but Tailwind still cannot compile there, so dev and tests move into a Linux toolbox container (ADR-024).

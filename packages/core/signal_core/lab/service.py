@@ -101,23 +101,28 @@ async def prior_art(session: AsyncSession, query_texts: list[str], k: int = 8) -
 
 
 async def detect_sparks(
-    session: AsyncSession, now: datetime, run_id: uuid.UUID | None = None, top_n: int = 8
+    session: AsyncSession,
+    now: datetime,
+    run_id: uuid.UUID | None = None,
+    top_n: int = 8,
+    story_ids: list[uuid.UUID] | None = None,
 ) -> list[Idea]:
+    """Spark detection over today's top stories, or over specific stories ("Build" on a story)."""
     cfg = get_config()
-    stories = list(
-        (
-            await session.execute(
-                select(Story)
-                .where(
-                    Story.status == "active",
-                    Story.final_score > 0,
-                    Story.last_updated >= now - timedelta(days=3),
-                )
-                .order_by(desc(Story.final_score))
-                .limit(top_n)
+    q = select(Story)
+    if story_ids:
+        q = q.where(Story.id.in_(story_ids))
+    else:
+        q = (
+            q.where(
+                Story.status == "active",
+                Story.final_score > 0,
+                Story.last_updated >= now - timedelta(days=3),
             )
-        ).scalars()
-    )
+            .order_by(desc(Story.final_score))
+            .limit(top_n)
+        )
+    stories = list((await session.execute(q)).scalars())
     if not stories:
         return []
     summaries = {}
@@ -215,6 +220,31 @@ async def detect_sparks(
         out.append(idea)
     await session.flush()
     return out
+
+
+async def build_from_story(session: AsyncSession, story: Story, now: datetime) -> list[Idea]:
+    """Story "Build" action: spark detection scoped to this story. When nothing passes the evidence rules, a plain
+    experiment idea is created with the story as its only evidence (title from the story, nothing invented)."""
+    ideas = await detect_sparks(session, now, story_ids=[story.id])
+    if ideas:
+        for i in ideas:
+            i.origin = "story"
+            i.status = "shortlisted"
+        return ideas
+    idea = Idea(
+        type="experiment",
+        title=story.title[:300],
+        evidence=[{"ref": str(story.id), "why": "Saved from the brief with Build"}],
+        scores={},
+        lab_score=0.0,
+        status="shortlisted",
+        origin="story",
+    )
+    session.add(idea)
+    await session.flush()
+    session.add(IdeaEvidence(idea_id=idea.id, story_id=story.id, note="Saved from the brief with Build"))
+    await session.flush()
+    return [idea]
 
 
 async def independent_signals(session: AsyncSession, evidence: list[Any], stories: dict[str, Story]) -> int:

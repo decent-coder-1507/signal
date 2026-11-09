@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -12,7 +12,7 @@ from signal_core.radar.jobs import ingest_all_due
 from signal_core.radar.pipeline import process
 
 EMAIL, PW = "owner@test.local", "correct horse battery"
-NOW = datetime(2026, 11, 6, 12, 0, tzinfo=UTC)
+NOW = datetime.now(UTC) - timedelta(hours=2)  # relative: endpoints use the wall clock
 
 
 @pytest.fixture

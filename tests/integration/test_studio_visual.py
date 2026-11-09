@@ -3,7 +3,7 @@ valid Markdown with front-matter and working code fences; Hashnode publish only 
 
 import json
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -22,7 +22,7 @@ from signal_core.radar.pipeline import process
 from signal_core.render.renderer import RenderError, check_contrast, contrast
 from signal_core.studio.visual import validate_markdown, validate_reel
 
-NOW = datetime(2026, 11, 6, 12, 0, tzinfo=UTC)
+NOW = datetime.now(UTC) - timedelta(hours=2)  # relative: endpoints use the wall clock
 EMAIL, PW = "owner@test.local", "correct horse battery"
 
 

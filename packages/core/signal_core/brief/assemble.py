@@ -20,6 +20,7 @@ from signal_core.llm import router as llm
 from signal_core.llm.provider import BudgetExceeded, LLMError
 from signal_core.radar.insight import degraded_insight, latest_insight
 from signal_core.radar.scoring import mmr
+from signal_core.truth import first_sentence
 
 
 async def last_opened_brief(session: AsyncSession) -> Brief | None:
@@ -50,11 +51,7 @@ async def decide_kind(session: AsyncSession, now: datetime, requested: str) -> t
 
 
 def _card(s: Story, ins: StoryInsight | None, update: bool, exploration: bool = False) -> dict[str, Any]:
-    first = (
-        ins.what_happened.split("] ")[0] + "]"
-        if ins and "]" in ins.what_happened
-        else (ins.what_happened if ins else s.title)
-    )
+    first = first_sentence(ins.what_happened) if ins else s.title
     post = next((a for a in (ins.actions if ins else []) if a.get("type") == "post"), None)
     return {
         "story_id": str(s.id),
@@ -98,7 +95,12 @@ async def assemble(
         (
             await session.execute(
                 select(Story)
-                .where(Story.status == "active", Story.last_updated >= since, Story.final_score > -0.5)
+                .where(
+                    Story.status == "active",
+                    Story.last_updated >= since,
+                    Story.final_score > -0.5,
+                    Story.ring != "wide",  # wide lens: separate feed, never mixed into the core brief (§6.1)
+                )
                 .order_by(desc(Story.final_score))
             )
         ).scalars()
@@ -145,7 +147,7 @@ async def assemble(
                 "story_id": str(s.id),
                 "title": s.title,
                 "ring": s.ring,
-                "one_line": (ins.what_happened.split(". ")[0] if ins else s.title),
+                "one_line": (first_sentence(ins.what_happened) if ins else s.title),
             }
         )
 

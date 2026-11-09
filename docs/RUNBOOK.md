@@ -31,7 +31,7 @@ Local embeddings: `uv sync --all-packages --all-extras` installs fastembed. Set 
 ## 4. Claude Runner
 - Every LLM call goes through `signal_core.llm.router` → `ClaudeRunnerProvider` → `claude -p --output-format json --json-schema … --tools "" --no-session-persistence`, with the system prompt in a temp file and the prompt on stdin, run outside the repo.
 - If the login expires, calls fail with "not authenticated". Routines keep running, and briefs degrade to extractive, cited summaries marked "degraded". Fix with `claude` → `/login`.
-- Subscription limits (5-hour and weekly) are shared with your interactive Claude use. `config/budget.yaml` caps calls per day (600) and concurrency (2). The costs page shows **API-equivalent** spend; the soft limit (80%) downgrades deep → balanced and caps insights at 15, and the hard limit (100%) allows only fast-tier work and user-initiated actions.
+- Subscription limits (5-hour and weekly) are shared with your interactive Claude use. `config/budget.yaml` caps calls per day (600); `SIGNAL_RUNNER_CONCURRENCY` (default 4) caps parallel `claude -p` processes. The costs page shows **API-equivalent** spend; the soft limit (80%) downgrades deep → balanced and caps insights at 15, and the hard limit (100%) allows only fast-tier work and user-initiated actions.
 - Terms: single-user personal use of your own login. Do not host SIGNAL in Runner mode for other people (ADR-001).
 
 ## 5. Tests
@@ -74,4 +74,5 @@ Caddy provides HTTPS automatically. Point the Telegram webhook at `https://your.
 | Briefs say "degraded" | Claude CLI login expired or subscription limit hit: `claude` → `/login`; check Ops → LLM ledger |
 | A source shows "fix or disable" | Ops/Settings → Sources → Test; disable it or fix the URL (`scripts/verify_sources.py`) |
 | Carousel render fails | Chrome must be installed; check `SIGNAL_RENDER_CHANNEL` |
+| `DLL load failed … Application Control policy has blocked this file` | Windows Smart App Control blocked a compiled file in `.venv`; see ADR-022 (`uv sync --reinstall-package <pkg>` after adding it to `no-binary-package`) |
 | Nothing in the brief | Quiet day (by design), or ingest hasn't run: Ops → Runs → `continuous_ingest` |

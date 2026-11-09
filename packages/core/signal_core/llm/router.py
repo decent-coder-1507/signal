@@ -15,7 +15,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, ValidationError
-from sqlalchemy import delete, select
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from signal_core.config import get_config
@@ -238,17 +239,21 @@ async def call(
             provider=provider.name,
         )
         if use_cache and messages is None:
-            await session.execute(delete(LLMCache).where(LLMCache.key == key))
-            session.add(
-                LLMCache(
-                    key=key,
-                    task=task,
-                    model=model_id,
-                    output=output.model_dump(mode="json") if isinstance(output, BaseModel) else output,
-                    expires_at=datetime.now(UTC) + timedelta(hours=cfg.budget.cache_ttl_hours),
+            # Upsert: identical calls can run concurrently (e.g. studio checks) and race on the same key.
+            row = {
+                "key": key,
+                "task": task,
+                "model": model_id,
+                "output": output.model_dump(mode="json") if isinstance(output, BaseModel) else output,
+                "expires_at": datetime.now(UTC) + timedelta(hours=cfg.budget.cache_ttl_hours),
+            }
+            ins = pg_insert(LLMCache).values(**row)
+            await session.execute(
+                ins.on_conflict_do_update(
+                    index_elements=[LLMCache.key],
+                    set_={k: ins.excluded[k] for k in ("task", "model", "output", "expires_at")},
                 )
             )
-            await session.flush()
         return CallResult(output, model_id, tpl.version, eff_tier, False, cost, cid)
     raise LLMInvalidOutput(f"{task}: invalid output after repair retry: {last_err}")
 

@@ -1,0 +1,17 @@
+# Host-built artefacts (Windows binaries) and secrets never enter images; .env is passed at runtime (env_file).
+**/.venv
+**/node_modules
+**/.next
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/test-results
+**/playwright-report
+.git
+.env
+.env.*
+!.env.example
+data
+coverage.xml
+*.log

@@ -19,31 +19,31 @@ services:
     restart: unless-stopped
   api:
     profiles: [full]
-    build: {context: ., dockerfile: deploy/python.Dockerfile}
-    command: uv run uvicorn signal_api.main:app --host 0.0.0.0 --port 8710
+    build: {context: ., dockerfile: deploy/python.Dockerfile, network: host}
+    command: uv run --no-sync uvicorn signal_api.main:app --host 0.0.0.0 --port 8710
     env_file: [{path: .env, required: false}]
-    environment: {SIGNAL_DATABASE_URL: "postgresql+asyncpg://signal:${POSTGRES_PASSWORD:-signal}@db:5432/signal", SIGNAL_REDIS_URL: "redis://redis:6379/0"}
+    environment: {SIGNAL_DATABASE_URL: "postgresql+asyncpg://signal:${POSTGRES_PASSWORD:-signal}@db:5432/signal", SIGNAL_REDIS_URL: "redis://redis:6379/0", SIGNAL_USE_REDIS_QUEUE: "true"}
     depends_on: {db: {condition: service_healthy}, redis: {condition: service_healthy}}
     volumes: ["./data:/app/data", "claude_home:/home/signal/.claude"]
     ports: ["8710:8710"]
   worker:
     profiles: [full]
-    build: {context: ., dockerfile: deploy/python.Dockerfile}
-    command: uv run arq signal_worker.main.WorkerSettings
+    build: {context: ., dockerfile: deploy/python.Dockerfile, network: host}
+    command: uv run --no-sync arq signal_worker.main.WorkerSettings
     env_file: [{path: .env, required: false}]
-    environment: {SIGNAL_DATABASE_URL: "postgresql+asyncpg://signal:${POSTGRES_PASSWORD:-signal}@db:5432/signal", SIGNAL_REDIS_URL: "redis://redis:6379/0"}
+    environment: {SIGNAL_DATABASE_URL: "postgresql+asyncpg://signal:${POSTGRES_PASSWORD:-signal}@db:5432/signal", SIGNAL_REDIS_URL: "redis://redis:6379/0", SIGNAL_USE_REDIS_QUEUE: "true"}
     depends_on: {db: {condition: service_healthy}, redis: {condition: service_healthy}}
     volumes: ["./data:/app/data", "claude_home:/home/signal/.claude"]
   scheduler:
     profiles: [full]
-    build: {context: ., dockerfile: deploy/python.Dockerfile}
-    command: uv run python -m signal_scheduler.main
+    build: {context: ., dockerfile: deploy/python.Dockerfile, network: host}
+    command: uv run --no-sync python -m signal_scheduler.main
     env_file: [{path: .env, required: false}]
-    environment: {SIGNAL_DATABASE_URL: "postgresql+asyncpg://signal:${POSTGRES_PASSWORD:-signal}@db:5432/signal", SIGNAL_REDIS_URL: "redis://redis:6379/0"}
+    environment: {SIGNAL_DATABASE_URL: "postgresql+asyncpg://signal:${POSTGRES_PASSWORD:-signal}@db:5432/signal", SIGNAL_REDIS_URL: "redis://redis:6379/0", SIGNAL_USE_REDIS_QUEUE: "true"}
     depends_on: {db: {condition: service_healthy}, redis: {condition: service_healthy}}
   web:
     profiles: [full]
-    build: {context: ., dockerfile: deploy/web.Dockerfile}
+    build: {context: ., dockerfile: deploy/web.Dockerfile, network: host}
     environment: {SIGNAL_API_URL: "http://api:8710"}
     ports: ["3710:3710"]
     depends_on: [api]
@@ -54,3 +54,9 @@ services:
     environment: {SIGNAL_DOMAIN: "${SIGNAL_DOMAIN:-localhost}"}
     volumes: ["./deploy/Caddyfile:/etc/caddy/Caddyfile:ro", "signal_caddy:/data"]
 volumes: {signal_pg: {}, signal_redis: {}, signal_caddy: {}, claude_home: {}}
+
+# ADR-023: WSL's eth0 has MTU 1400; Docker bridges default to 1500, which stalls large TLS downloads.
+# Scoped to this project's network only (the daemon config and other projects are untouched).
+networks:
+  default:
+    driver_opts: {com.docker.network.driver.mtu: "1400"}

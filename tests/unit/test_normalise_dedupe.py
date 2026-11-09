@@ -80,3 +80,9 @@ async def test_prefilter_keywords_plurals_and_blocklist() -> None:
     assert weak.score < r.score / 1.5  # a single generic one-word hit is weak evidence
     r2 = prefilter(item, "Crypto price prediction for agents", "x", profile, ["crypto price prediction"], [])
     assert r2.blocked and r2.score == 0.0
+
+
+def test_canonical_url_tolerates_malformed_ports_from_scraped_text() -> None:
+    # A real article mentioned "http://localhost:11434." — one bad link must never crash the pipeline.
+    assert canonical_url("http://localhost:11434.") == "https://localhost/"
+    assert canonical_url("https://example.com:8443/a/") == "https://example.com:8443/a"

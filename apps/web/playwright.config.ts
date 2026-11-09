@@ -37,7 +37,8 @@ export default defineConfig({
       },
     },
     {
-      command: `pnpm next dev -p ${WEB_PORT}`,
+      // Windows Application Control blocks Next's native SWC binary; Webpack falls back to WASM (ADR-022).
+      command: `pnpm next dev ${process.platform === "win32" ? "--webpack " : ""}-p ${WEB_PORT}`,
       url: `http://localhost:${WEB_PORT}/login`,
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,

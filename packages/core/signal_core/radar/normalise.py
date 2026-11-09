@@ -37,7 +37,11 @@ def canonical_url(url: str) -> str:
         host = host[4:]
     if host.startswith("m.") and host.count(".") >= 2:
         host = host[2:]
-    port = f":{p.port}" if p.port and p.port not in (80, 443) else ""
+    try:
+        port_n = p.port
+    except ValueError:  # malformed port in scraped text, e.g. "localhost:11434." at a sentence end
+        port_n = None
+    port = f":{port_n}" if port_n and port_n not in (80, 443) else ""
     path = AMP_EXT.sub("", AMP_PATH.sub("/", p.path or "/"))
     path = re.sub(r"/{2,}", "/", path)
     if len(path) > 1:

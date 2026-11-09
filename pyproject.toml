@@ -7,6 +7,14 @@ dependencies = ["signal-core", "signal-api", "signal-worker", "signal-scheduler"
 [tool.uv.workspace]
 members = ["packages/core", "apps/api", "apps/worker", "apps/scheduler"]
 
+[tool.uv]
+# ADR-022: Windows Application Control blocks some compiled extensions in the venv on this machine
+# (SQLAlchemy's Cython modules, mypy's mypyc build). Build these from source as pure Python.
+no-binary-package = ["sqlalchemy", "mypy"]
+
+[tool.uv.extra-build-variables]
+sqlalchemy = { DISABLE_SQLALCHEMY_CEXT = "1" }
+
 [tool.uv.sources]
 signal-core = { workspace = true }
 signal-api = { workspace = true }

@@ -64,3 +64,17 @@ def test_invalid_timezone(tmp_path: Path) -> None:
     edit(d, "profile.yaml", lambda c: c["owner"].update(timezone="Mars/Olympus"))
     with pytest.raises(ConfigError, match=r"profile.yaml"):
         load_config(d)
+
+
+def test_live_mode_refuses_placeholder_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
+    from signal_core.settings import Settings
+
+    monkeypatch.delenv("SIGNAL_SECRET_KEY", raising=False)
+    monkeypatch.delenv("SIGNAL_ADMIN_PASSWORD", raising=False)
+    with pytest.raises(ValueError, match=r"SIGNAL_SECRET_KEY.*SIGNAL_ADMIN_PASSWORD"):
+        Settings(mode="live", _env_file=None)
+    ok = Settings(mode="live", secret_key="x" * 40, admin_password="a-real-password-123", _env_file=None)
+    assert ok.mode == "live"
+    assert (
+        Settings(mode="mock", _env_file=None).secret_key == "dev-insecure-change-me"
+    )  # mock may use defaults

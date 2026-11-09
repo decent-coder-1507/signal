@@ -17,6 +17,7 @@ from signal_core.db.models import Feedback, Story, StoryInsight
 from signal_core.radar.insight import generate_insights, latest_insight, story_items
 from signal_core.radar.preference import nudge_topics, retrain
 from signal_core.radar.scoring import score_stories
+from signal_core.truth import first_sentence
 
 router = APIRouter(tags=["stories"])
 
@@ -61,7 +62,7 @@ def story_card(s: Story, ins: StoryInsight | None) -> dict[str, Any]:
         and (not s.last_shown_at or s.material_update_at > s.last_shown_at)
         and s.last_shown_at
     )
-    one_line = ins.what_happened.split(". ")[0] if ins else ""
+    one_line = first_sentence(ins.what_happened) if ins else ""
     return {
         "id": str(s.id),
         "title": s.title,

@@ -2,6 +2,7 @@
 """Cross-platform task runner (ADR-003). Usage: python scripts/dev.py <command>
 
 setup        uv sync + pnpm install + Playwright Chromium
+init-env     create .env from .env.example with a generated secret key and admin password (never overwrites)
 infra        start Postgres+pgvector (:5442) and Redis (:6390) in WSL/host Docker (project "signal")
 migrate      alembic upgrade head        seed [--demo]   load config (+ fixture demo data)
 up           infra + migrate + api, worker, scheduler, web (Ctrl+C stops)
@@ -42,6 +43,7 @@ def sh(cmd: list[str], *, cwd: Path = ROOT, env: dict[str, str] | None = None, c
 
 
 def uv(*args: str, env: dict[str, str] | None = None, check: bool = True) -> int:
+    # Always `python -m <tool>`: Windows Application Control may block the venv's .exe launchers (ADR-022).
     return sh([*UV, "run", *args], env=env, check=check)
 
 
@@ -90,6 +92,30 @@ def ensure_wsl_docker() -> None:
         sys.exit("Docker daemon in WSL did not start; see /var/log/dockerd-manual.log inside the distro")
 
 
+def cmd_init_env() -> None:
+    """Create .env with generated secrets. Never overwrites an existing .env; prints the admin password once."""
+    import secrets
+
+    target = ROOT / ".env"
+    if target.exists():
+        sys.exit(".env already exists; edit it instead (nothing changed)")
+    password = secrets.token_urlsafe(18)
+    lines = []
+    for line in (ROOT / ".env.example").read_text(encoding="utf-8").splitlines():
+        key = line.split("=", 1)[0]
+        if key == "SIGNAL_SECRET_KEY":
+            line = f"SIGNAL_SECRET_KEY={secrets.token_urlsafe(48)}"
+        elif key == "SIGNAL_ADMIN_PASSWORD":
+            line = f"SIGNAL_ADMIN_PASSWORD={password}"
+        lines.append(line)
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    print(f"Created {target} (mode live, Redis queue on, fastembed).")
+    print(f"Admin login: SIGNAL_ADMIN_EMAIL from .env, password: {password}")
+    print("Store the password in your password manager; it is not shown again.")
+
+
 def cmd_infra() -> None:
     ensure_wsl_docker()
     docker("compose", "up", "-d", "db", "redis")
@@ -121,6 +147,8 @@ SERVICES = {
     "api": [
         *UV,
         "run",
+        "python",
+        "-m",
         "uvicorn",
         "signal_api.main:app",
         "--port",
@@ -131,9 +159,10 @@ SERVICES = {
         "--reload-dir",
         "packages/core",
     ],
-    "worker": [*UV, "run", "arq", "signal_worker.main.WorkerSettings"],
+    "worker": [*UV, "run", "python", "-m", "arq", "signal_worker.main.WorkerSettings"],
     "scheduler": [*UV, "run", "python", "-m", "signal_scheduler.main"],
-    "web": ["pnpm", "--filter", "@signal/web", "dev"],
+    # Windows Application Control blocks the native SWC binary; Webpack uses the WASM fallback (ADR-022).
+    "web": ["pnpm", "--filter", "@signal/web", "dev:webpack" if IS_WIN else "dev"],
 }
 
 
@@ -172,16 +201,23 @@ def cmd_up(mock: bool = False) -> None:
 
 
 def cmd_lint() -> None:
-    uv("ruff", "check", ".")
-    uv("ruff", "format", "--check", ".")
-    uv("mypy", "packages/core/signal_core", "apps")
+    uv("python", "-m", "ruff", "check", ".")
+    uv("python", "-m", "ruff", "format", "--check", ".")
+    uv("python", "-m", "mypy", "packages/core/signal_core", "apps")
     sh(["pnpm", "--filter", "@signal/web", "lint"])
     sh(["pnpm", "--filter", "@signal/web", "typecheck"])
 
 
 def cmd_test() -> None:
     cmd_lint()
-    uv("pytest", "--cov=signal_core", "--cov-report=term:skip-covered", "--cov-report=xml:coverage.xml")
+    uv(
+        "python",
+        "-m",
+        "pytest",
+        "--cov=signal_core",
+        "--cov-report=term:skip-covered",
+        "--cov-report=xml:coverage.xml",
+    )
     sh(["pnpm", "--filter", "@signal/web", "test"])
 
 
@@ -206,6 +242,8 @@ def main() -> None:
     c = sys.argv[1]
     if c == "setup":
         cmd_setup()
+    elif c == "init-env":
+        cmd_init_env()
     elif c == "infra":
         cmd_infra()
     elif c == "migrate":

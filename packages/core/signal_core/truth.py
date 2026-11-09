@@ -105,3 +105,15 @@ def remove_disallowed_urls(text: str, whitelist: set[str]) -> str:
     for u in disallowed_urls(text, whitelist):
         text = text.replace(u, "[link removed: not in sources]")
     return text
+
+
+_CITES = r"(?:\s*\[(?:r:)?[0-9a-fA-F-]{8,36}\])*"
+_FIRST = re.compile(r"^(.+?[.!?]" + _CITES + r"|.+?" + _CITES + r"[.!?])(?=\s+\S|\s*$)", re.S)
+
+
+def first_sentence(text: str) -> str:
+    """First sentence of cited text, keeping its citation markers whether they come before or after the full
+    stop ("x [id]. Next" and "x. [id] Next"). Decimals and versions ("71.2%", "v2.0") don't end a sentence."""
+    t = " ".join(text.split())
+    m = _FIRST.match(t)
+    return m.group(1).strip() if m else t

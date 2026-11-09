@@ -18,3 +18,7 @@ backups/
 .claude-flow/
 test-results/
 playwright-report/
+
+# test artefacts
+.coverage
+coverage.xml

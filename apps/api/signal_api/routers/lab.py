@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import desc, select
 
 from signal_api.deps import DB, CurrentUser
-from signal_core.db.models import BuildBrief, BuildLog, Idea
+from signal_core.db.models import BuildBrief, BuildLog, Idea, Story
 from signal_core.lab import service as lab
 
 router = APIRouter(tags=["lab"])
@@ -197,6 +197,15 @@ class LogIn(BaseModel):
 async def add_log(iid: uuid.UUID, body: LogIn, _: CurrentUser, db: DB) -> dict[str, Any]:
     lg = await lab.add_log(db, await _idea(db, iid), body.text, body.attachments, datetime.now(UTC))
     return {"id": str(lg.id), "text": lg.text, "logged_at": lg.logged_at.isoformat()}
+
+
+@router.post("/stories/{sid}/build", status_code=201)
+async def build_from_story(sid: uuid.UUID, _: CurrentUser, db: DB) -> list[dict[str, Any]]:
+    """Story "Build" action (§6.7): turn this story into Lab idea(s), shortlisted."""
+    story = await db.get(Story, sid)
+    if story is None:
+        raise HTTPException(404, "story not found")
+    return [idea_out(i) for i in await lab.build_from_story(db, story, datetime.now(UTC))]
 
 
 @router.post("/lab/sparks/detect")

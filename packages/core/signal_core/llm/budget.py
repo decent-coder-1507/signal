@@ -64,7 +64,10 @@ async def status(session: AsyncSession, cfg: BudgetCfg, tz: str, now: datetime |
     next_month = (ms.astimezone(ZoneInfo(tz)).replace(day=28) + timedelta(days=4)).replace(day=1)
     month_days = (next_month.astimezone(UTC) - ms) / timedelta(days=1)
     projected = float(spent) / elapsed_days * month_days
-    limit = cfg.monthly_usd
+    # The monthly budget set in onboarding/Settings overrides config/budget.yaml.
+    from signal_core.services.settings_store import get_setting
+
+    limit = float(await get_setting(session, "budget_monthly_usd", cfg.monthly_usd) or cfg.monthly_usd)
     st: State = "hard" if spent >= limit else "soft" if spent >= limit * cfg.soft_limit_pct / 100 else "ok"
     return BudgetStatus(float(spent), limit, st, int(calls_today), projected)
 

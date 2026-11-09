@@ -6,10 +6,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+PLACEHOLDER_SECRETS = {"dev-insecure-change-me", "change-me-to-a-long-random-string"}
+PLACEHOLDER_PASSWORDS = {"change-me-now"}
 
 
 class Settings(BaseSettings):
@@ -28,7 +30,7 @@ class Settings(BaseSettings):
     timezone: str = "Asia/Kolkata"
     # Claude Runner (ADR-001): local Claude Code CLI, subscription login, no API key.
     claude_bin: str = "claude"
-    runner_concurrency: int = 2
+    runner_concurrency: int = 4  # parallel `claude -p` processes (studio checks run concurrently)
     runner_timeout_s: int = 180
     # Embeddings: "mock" (hash) or "fastembed" (local bge-small, 384-d)
     embedding_provider: Literal["mock", "fastembed"] = "mock"
@@ -60,6 +62,25 @@ class Settings(BaseSettings):
     @property
     def is_mock(self) -> bool:
         return self.mode == "mock"
+
+    @model_validator(mode="after")
+    def _no_placeholder_secrets_in_live(self) -> Settings:
+        """Live mode never runs on placeholder credentials (fail fast; `python scripts/dev.py init-env`)."""
+        if self.mode == "live":
+            bad = [
+                name
+                for name, value, placeholders in (
+                    ("SIGNAL_SECRET_KEY", self.secret_key, PLACEHOLDER_SECRETS),
+                    ("SIGNAL_ADMIN_PASSWORD", self.admin_password, PLACEHOLDER_PASSWORDS),
+                )
+                if value in placeholders or len(value) < 12
+            ]
+            if bad:
+                raise ValueError(
+                    f"live mode needs real values for {', '.join(bad)} "
+                    "(run `python scripts/dev.py init-env`, or set them in .env)"
+                )
+        return self
 
 
 @lru_cache

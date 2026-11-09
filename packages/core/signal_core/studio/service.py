@@ -8,6 +8,7 @@ flags — unless the user records an explicit override with a reason (§M4 accep
 
 from __future__ import annotations
 
+import asyncio
 import re
 import uuid
 from dataclasses import dataclass
@@ -438,10 +439,56 @@ async def _store_versions(
             author="ai",
         )
         session.add(dv)
-        await session.flush()
-        await run_checks(session, d, dv, sources, raw, rules, banned, refs)
         out.append(dv)
+    await session.flush()
+    # The LLM checks of every version run concurrently (each call on its own session); results apply in order.
+    results = await asyncio.gather(
+        *(_llm_checks(d.platform, _text_of(dv), _fact_payload(dv, sources, raw), refs) for dv in out)
+    )
+    for dv, res in zip(out, results, strict=True):
+        await run_checks(session, d, dv, sources, raw, rules, banned, refs, llm_results=res)
     return out
+
+
+def _fact_payload(
+    dv: DraftVersion, sources: list[dict[str, Any]], raw: list[RawMaterial]
+) -> list[dict[str, Any]]:
+    by_id = {s["id"]: s for s in sources} | {f"r:{r.id}": {"id": f"r:{r.id}", "text": r.text} for r in raw}
+    return [
+        {"sentence": c["sentence"], "sources": [by_id[x] for x in c["source_ids"] if x in by_id]}
+        for c in dv.claims or []
+        if c.get("source_ids")
+    ]
+
+
+async def _isolated_call(task: str, inputs: dict[str, Any]) -> Any:
+    """One LLM call on its own short-lived session, so independent checks can run concurrently."""
+    from signal_core.db.session import session_scope
+
+    async with session_scope() as s:
+        return (await llm.call(task, inputs, session=s, user_initiated=True)).output
+
+
+async def _llm_checks(
+    platform: str, text: str, fact_claims: list[dict[str, Any]], refs: list[str], grade: bool = True
+) -> dict[str, Any]:
+    """Fact-check, safety and grader for one version, concurrently."""
+    conf = get_config().profile.owner.confidential_keywords
+    jobs: dict[str, Any] = {"safety": _isolated_call("safety_check", {"text": text, "confidential": conf})}
+    if fact_claims:
+        jobs["factcheck"] = _isolated_call("factcheck", {"claims": fact_claims})
+    if grade:
+        jobs["grade"] = _isolated_call(
+            "grader",
+            {
+                "platform": platform,
+                "rubric": RUBRIC.get(platform, RUBRIC["linkedin"]),
+                "references": refs,
+                "draft": text,
+            },
+        )
+    done = await asyncio.gather(*jobs.values())
+    return dict(zip(jobs.keys(), done, strict=True))
 
 
 async def run_checks(
@@ -454,8 +501,11 @@ async def run_checks(
     banned: list[str],
     refs: list[str],
     grade: bool = True,
+    llm_results: dict[str, Any] | None = None,
 ) -> None:
     text = _text_of(dv)
+    if llm_results is None:
+        llm_results = await _llm_checks(d.platform, text, _fact_payload(dv, sources, raw), refs, grade)
     spec = _platform_spec(d.platform)
     sc = (
         scan_thread(dv.thread, rules, banned, spec)
@@ -465,24 +515,10 @@ async def run_checks(
     dv.aitell = sc.as_dict()
     # Claims: every source id must resolve; every factual sentence must be covered by a claim (§9.8).
     allowed = {s["id"] for s in sources} | {f"r:{r.id}" for r in raw}
-    by_id = {s["id"]: s for s in sources} | {f"r:{r.id}": {"id": f"r:{r.id}", "text": r.text} for r in raw}
     bad_ids = sorted({sid for c in dv.claims or [] for sid in c.get("source_ids", []) if sid not in allowed})
     uncited = uncited_factual_sentences(text, dv.claims or [])
-    fc_results: list[dict[str, Any]] = []
-    fact_claims = [c for c in dv.claims or [] if c.get("source_ids")]
-    if fact_claims:
-        r = await llm.call(
-            "factcheck",
-            {
-                "claims": [
-                    {"sentence": c["sentence"], "sources": [by_id[s] for s in c["source_ids"] if s in by_id]}
-                    for c in fact_claims
-                ]
-            },
-            session=session,
-            user_initiated=True,
-        )
-        fc_results = [x.model_dump() for x in r.output.results]
+    fc = llm_results.get("factcheck")
+    fc_results: list[dict[str, Any]] = [x.model_dump() for x in fc.results] if fc is not None else []
     dv.factcheck = {
         "results": fc_results,
         "unknown_source_ids": bad_ids,
@@ -492,25 +528,15 @@ async def run_checks(
     }
     dv.checks = {
         "originality": await originality(session, text, sources),
-        "safety": await safety(session, text),
+        "safety": {"flags": [f.model_dump() for f in llm_results["safety"].flags]},
         "attribution": attribution(sources),
     }
-    if grade:
-        g = await llm.call(
-            "grader",
-            {
-                "platform": d.platform,
-                "rubric": RUBRIC.get(d.platform, RUBRIC["linkedin"]),
-                "references": refs,
-                "draft": text,
-            },
-            session=session,
-            user_initiated=True,
-        )
-        dv.grade = g.output.model_dump()
+    g = llm_results.get("grade")
+    if grade and g is not None:
+        dv.grade = g.model_dump()
         # LLM half of the AI-tell scan: the grader's flagged phrases become advisory highlights (ADR-018).
         issues = list((dv.aitell or {}).get("issues", []))
-        for ph in g.output.ai_phrases:
+        for ph in g.ai_phrases:
             idx = text.lower().find(ph.lower())
             issues.append(
                 {
@@ -582,14 +608,6 @@ async def originality(session: AsyncSession, text: str, sources: list[dict[str, 
                 )
                 break
     return {"max_similarity_to_own": round(top, 3), "flags": flags}
-
-
-async def safety(session: AsyncSession, text: str) -> dict[str, Any]:
-    conf = get_config().profile.owner.confidential_keywords
-    r = await llm.call(
-        "safety_check", {"text": text, "confidential": conf}, session=session, user_initiated=True
-    )
-    return {"flags": [f.model_dump() for f in r.output.flags]}
 
 
 def attribution(sources: list[dict[str, Any]]) -> list[str]:

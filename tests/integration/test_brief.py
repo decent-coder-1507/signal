@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from signal_api.main import create_app
 from signal_core.brief.assemble import assemble
-from signal_core.db.models import Brief, HabitDay, Item, Notification, Routine, StoryItem, WatchHit
+from signal_core.db.models import Brief, HabitDay, Item, Notification, Routine, Story, StoryItem, WatchHit
 from signal_core.demo import fixture_client, seed_fixture_sources
 from signal_core.fixtures_corpus import labels
 from signal_core.radar.jobs import ingest_all_due
@@ -60,6 +60,16 @@ async def test_brief_has_at_most_7_diverse_stories_and_sections(seeded: AsyncSes
     assert all(s["score"] >= 0.55 for s in c["stories"] if not s["exploration"])
     assert c["quick_hits"] and isinstance(c["cards_due"], int)
     assert b.rendered_md.startswith("# Daily Brief")
+
+
+async def test_wide_lens_stories_never_enter_the_brief(seeded: AsyncSession) -> None:
+    await prepare(seeded)
+    best = (await seeded.execute(select(Story).order_by(Story.final_score.desc()).limit(1))).scalar_one()
+    best.ring = "wide"
+    await seeded.flush()
+    b = await assemble(seeded, NOW + timedelta(hours=1))
+    shown = {s["story_id"] for s in b.content["stories"]} | {q["story_id"] for q in b.content["quick_hits"]}
+    assert str(best.id) not in shown
 
 
 async def test_second_brief_is_quiet_day_not_repeats(seeded: AsyncSession) -> None:
@@ -117,9 +127,19 @@ async def test_watch_triggers_on_fixture_event(seeded: AsyncSession) -> None:
     assert any(x["watch"].startswith("Tell me about prompt injection") for x in b.content["watches"])
 
 
+class _PinnedDatetime(datetime):
+    @classmethod
+    def now(cls, tz: object = None) -> "_PinnedDatetime":  # type: ignore[override]
+        return cls.fromtimestamp((NOW + timedelta(hours=1)).timestamp(), tz=UTC)
+
+
 @pytest.fixture
-async def client(seeded: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
+async def client(seeded: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[httpx.AsyncClient]:
+    import signal_api.routers.briefs as briefs_router
     from signal_api.routers.auth import _attempts
+
+    # The fixture corpus is dated NOW: pin the briefs router's clock (brief, today, watches) to just after it.
+    monkeypatch.setattr(briefs_router, "datetime", _PinnedDatetime)
 
     _attempts.clear()
     await prepare(seeded)
@@ -133,19 +153,7 @@ async def client(seeded: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
         yield c
 
 
-class _PinnedDatetime(datetime):
-    @classmethod
-    def now(cls, tz: object = None) -> "_PinnedDatetime":  # type: ignore[override]
-        return cls.fromtimestamp((NOW + timedelta(hours=1)).timestamp(), tz=UTC)
-
-
-async def test_completing_triage_marks_habit_day(
-    client: httpx.AsyncClient, seeded: AsyncSession, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    # The fixture corpus is dated NOW; pin the briefs router's clock so it stays inside the brief window.
-    import signal_api.routers.briefs as briefs_router
-
-    monkeypatch.setattr(briefs_router, "datetime", _PinnedDatetime)
+async def test_completing_triage_marks_habit_day(client: httpx.AsyncClient, seeded: AsyncSession) -> None:
     b = (await client.post("/briefs/generate", json={"kind": "daily"})).json()
     assert b["content"]["stories"]
     latest = (await client.get("/briefs/latest")).json()
