@@ -28,7 +28,9 @@ async def get_db() -> AsyncIterator[AsyncSession]:
             raise
 
 
-DB = Annotated[AsyncSession, Depends(get_db)]
+# scope="function": commit BEFORE the response is sent. The default ("request") commits after sending, so a
+# client that immediately uses a returned id (e.g. angles -> drafts) could race the commit and get a 404.
+DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
 
 
 async def current_user(request: Request, db: DB) -> User:
