@@ -120,7 +120,7 @@ def cmd_init_env() -> None:
 
 def cmd_linux(args: list[str]) -> None:
     """Run `scripts/dev.py <args>` in the Linux toolbox (Docker in the Alpine WSL distro on Windows)."""
-    inner = "docker compose --profile dev run --rm -T toolbox python scripts/dev.py " + " ".join(
+    inner = "docker compose --profile dev run --build --rm -T toolbox python scripts/dev.py " + " ".join(
         f"'{a}'" for a in args
     )
     if IS_WIN:
