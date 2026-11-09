@@ -84,7 +84,7 @@ export function ExplainerPanel({
             aria-pressed={depth === d.id}
             disabled={gen.isPending}
             onClick={() => run(d.id)}
-            className={clsx("min-h-8 rounded-full border px-3 text-xs", depth === d.id ? "border-accent bg-accent/10 text-accent" : "border-border text-muted")}
+            className={clsx("min-h-8 rounded-full border px-3 text-xs", depth === d.id ? "border-primary bg-primary text-primary-contrast" : "border-border-strong bg-surface text-muted")}
           >
             {d.label}
           </button>

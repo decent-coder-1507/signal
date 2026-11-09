@@ -115,7 +115,7 @@ function NewRoutine({ onCreated }: { onCreated: () => void }) {
   const flip = (xs: string[], x: string) => (xs.includes(x) ? xs.filter((y) => y !== x) : [...xs, x]);
   return (
     <Card>
-      <h2 className="mb-3 text-sm font-semibold">New custom routine</h2>
+      <h2 className="card-title mb-3">New custom routine</h2>
       <form
         className="space-y-4"
         aria-label="New routine"

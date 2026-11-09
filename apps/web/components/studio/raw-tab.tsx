@@ -96,7 +96,7 @@ export function RawTab() {
         </ul>
       </div>
       <Card>
-        <h2 className="mb-3 text-sm font-semibold">{editing ? "Edit entry" : "Add to the bank"}</h2>
+        <h2 className="card-title mb-3">{editing ? "Edit entry" : "Add to the bank"}</h2>
         <form
           className="space-y-3"
           onSubmit={(e) => {

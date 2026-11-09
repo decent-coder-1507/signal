@@ -61,7 +61,7 @@ export default function LibraryPage() {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <PageTitle sub="Everything you saved, noted and highlighted — and a way out (export).">Library</PageTitle>
         <Button onClick={openSearch}>
-          <Search size={14} aria-hidden /> Search <kbd className="text-xs text-muted">Ctrl K</kbd>
+          <Search size={14} aria-hidden /> Search <kbd>Ctrl K</kbd>
         </Button>
       </div>
       <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
@@ -79,7 +79,7 @@ function SavedTab() {
   return (
     <ul className="space-y-2">
       {rows.map((r) => (
-        <li key={r.id} className="bento p-3">
+        <li key={r.id} className="bento px-4 py-3.5">
           {safeUrl(r.url) ? (
             <a href={safeUrl(r.url)} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">
               {r.title}
@@ -141,7 +141,7 @@ function NotesTab() {
                 type="button"
                 aria-pressed={collection === c}
                 onClick={() => setCollection(c)}
-                className={`min-h-8 rounded-full border px-3 text-xs ${collection === c ? "border-accent bg-accent/10 text-accent" : "border-border text-muted"}`}
+                className={`min-h-8 rounded-full border px-3 text-xs ${collection === c ? "border-primary bg-primary text-primary-contrast" : "border-border-strong bg-surface text-muted"}`}
               >
                 {c || "All"}
               </button>
@@ -153,7 +153,7 @@ function NotesTab() {
         ) : (
           <ul className="space-y-2" aria-label="Notes">
             {notes.map((n) => (
-              <li key={n.id} className="bento p-3">
+              <li key={n.id} className="bento px-4 py-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <p className={`min-w-0 whitespace-pre-wrap break-words text-sm ${n.kind === "highlight" ? "border-l-2 border-accent pl-2" : ""}`}>{n.text}</p>
                   <Button size="sm" variant="ghost" aria-label="Delete note" onClick={() => remove.mutate(n.id)}>
@@ -177,7 +177,7 @@ function NotesTab() {
         )}
       </div>
       <Card>
-        <h2 className="mb-3 text-sm font-semibold">New note</h2>
+        <h2 className="card-title mb-3">New note</h2>
         <form
           className="space-y-3"
           onSubmit={(e) => {

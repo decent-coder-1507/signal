@@ -64,7 +64,7 @@ export function SeriesTab() {
         </ul>
       </div>
       <Card>
-        <h2 className="mb-3 text-sm font-semibold">New series</h2>
+        <h2 className="card-title mb-3">New series</h2>
         <form
           className="space-y-3"
           onSubmit={(e) => {
