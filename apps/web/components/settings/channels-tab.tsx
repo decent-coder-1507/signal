@@ -56,7 +56,7 @@ function ChannelsForm({ s }: { s: ChannelSettings }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
-        <h2 className="mb-3 text-sm font-semibold">Channels</h2>
+        <h2 className="card-title mb-3">Channels</h2>
         <ul className="space-y-3">
           {CHANNELS.map((c) => (
             <li key={c.flag} className="flex items-start justify-between gap-3">
@@ -72,7 +72,7 @@ function ChannelsForm({ s }: { s: ChannelSettings }) {
       </Card>
 
       <Card>
-        <h2 className="mb-3 text-sm font-semibold">Notifications</h2>
+        <h2 className="card-title mb-3">Notifications</h2>
         <form
           className="space-y-3"
           onSubmit={(e) => {
@@ -140,7 +140,7 @@ function ChannelsForm({ s }: { s: ChannelSettings }) {
       </Card>
 
       <Card className="md:col-span-2">
-        <h2 className="mb-2 text-sm font-semibold">Hashnode</h2>
+        <h2 className="card-title mb-2">Hashnode</h2>
         <form
           className="flex flex-wrap items-end gap-2"
           onSubmit={(e) => {

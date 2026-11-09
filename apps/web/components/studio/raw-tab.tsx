@@ -59,7 +59,7 @@ export function RawTab() {
         {(q.data ?? []).length === 0 && <p className="text-sm text-muted">Nothing here yet.</p>}
         <ul className="space-y-2" aria-label="Raw materials">
           {(q.data ?? []).map((r) => (
-            <li key={r.id} data-testid="raw-material" className="rounded-lg border border-border bg-surface p-3">
+            <li key={r.id} data-testid="raw-material" className="bento p-3">
               <div className="flex items-start justify-between gap-2">
                 <p className="min-w-0 whitespace-pre-wrap break-words text-sm">{r.text}</p>
                 <div className="flex shrink-0">
@@ -96,7 +96,7 @@ export function RawTab() {
         </ul>
       </div>
       <Card>
-        <h2 className="mb-3 text-sm font-semibold">{editing ? "Edit entry" : "Add to the bank"}</h2>
+        <h2 className="card-title mb-3">{editing ? "Edit entry" : "Add to the bank"}</h2>
         <form
           className="space-y-3"
           onSubmit={(e) => {

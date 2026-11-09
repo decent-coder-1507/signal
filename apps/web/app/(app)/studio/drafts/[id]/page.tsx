@@ -78,7 +78,7 @@ function Header({ draft: d }: { draft: Draft }) {
         <ArrowLeft size={14} aria-hidden /> Studio
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-serif text-2xl font-semibold tracking-tight">{PLATFORM_LABEL[d.platform] ?? d.platform}</h1>
+        <h1 className="tracking-tight text-2xl font-semibold">{PLATFORM_LABEL[d.platform] ?? d.platform}</h1>
         {d.current && (
           <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Repurpose">
             <span className="inline-flex items-center gap-1 text-xs text-muted">
@@ -154,7 +154,7 @@ function Editor({ draft: d }: { draft: Draft }) {
     <Card>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold">Draft</h2>
+          <h2 className="card-title">Draft</h2>
           <span className="text-xs text-muted">
             v{v.version} · {v.author === "human" ? "your edit" : "AI"}
           </span>
@@ -264,13 +264,13 @@ function VisualSection({ draft: d }: { draft: Draft }) {
     <div className="space-y-4">
       {(d.platform === "instagram_carousel" || d.platform === "linkedin_carousel") && (
         <Card>
-          <h2 className="mb-2 text-sm font-semibold">Slides</h2>
+          <h2 className="card-title mb-2">Slides</h2>
           <SlideEditor key={d.current?.id} draft={d} />
         </Card>
       )}
       {d.platform === "instagram_reel" && (
         <Card>
-          <h2 className="mb-2 text-sm font-semibold">
+          <h2 className="card-title mb-2">
             Reel script <Badge tone="muted">{d.format}</Badge>
           </h2>
           <ReelTable draft={d} />

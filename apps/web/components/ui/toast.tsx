@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             role="status"
             data-testid="toast"
             className={clsx(
-              "pointer-events-auto max-w-sm rounded-md border bg-surface px-3 py-2 text-sm shadow-lg",
+              "pointer-events-auto max-w-sm rounded-xl border bg-surface px-3.5 py-2.5 text-sm shadow-lg",
               t.tone === "good" && "border-good/50",
               t.tone === "bad" && "border-bad/50 text-bad",
               t.tone === "info" && "border-border",

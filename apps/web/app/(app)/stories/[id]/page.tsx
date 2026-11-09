@@ -43,13 +43,19 @@ export default function StoryPage() {
   return <StoryView data={q.data} />;
 }
 
-function Section({ title, children, testId }: { title: string; children: ReactNode; testId?: string }) {
+function Section({ title, children, testId, tint }: { title: string; children: ReactNode; testId?: string; tint?: boolean }) {
   return (
-    <section className="mt-6" data-testid={testId}>
-      <h2 className="mb-1.5 font-serif text-lg font-semibold">{title}</h2>
-      <div className="text-[15px] leading-relaxed">{children}</div>
+    <section className={tint ? "why-box mt-3.5 p-5" : "bento mt-3.5 p-5"} data-testid={testId}>
+      <h2 className={tint ? "mb-1.5 text-sm font-semibold" : "card-title mb-2"}>{title}</h2>
+      <div className={tint ? "text-[15px] leading-relaxed" : "text-[15px] leading-relaxed text-text-2"}>{children}</div>
     </section>
   );
+}
+
+/** Giant score numeral for the editorial header (0–100; "§" when unscored/excluded). */
+function scoreMark(score: number | null | undefined) {
+  if (score == null || !Number.isFinite(score) || score < 0) return "§";
+  return String(Math.round(Math.min(1, score) * 100)).padStart(2, "0");
 }
 
 function StoryView({ data }: { data: StoryDetail }) {
@@ -73,36 +79,51 @@ function StoryView({ data }: { data: StoryDetail }) {
       <Link href="/brief" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-text">
         <ArrowLeft size={14} aria-hidden /> Brief
       </Link>
-      <StoryBadges
-        ring={s.ring}
-        update={s.update}
-        hype={ins?.hype_verdict ?? s.hype_verdict}
-        durability={ins?.durability ?? s.durability}
-        degraded={ins?.degraded}
-      />
-      <h1 className="mt-2 font-serif text-2xl font-semibold leading-tight tracking-tight md:text-3xl">{s.title}</h1>
-      <p className="mt-1 text-xs text-muted">
-        First seen {fmtDate(s.first_seen)} · updated {fmtDate(s.last_updated)}
-        {ins?.reading_time ? ` · ${ins.reading_time} min primary read` : ""}
-      </p>
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <StoryActionBar id={s.id} title={s.title} followed={s.followed} />
-        <Link href={`/gym?tab=explain&topic=${encodeURIComponent(s.title.slice(0, 200))}&story=${s.id}`} className="text-sm text-accent underline">
-          Explain this
-        </Link>
-      </div>
+      {/* Editorial header (direction C): hot-orange score mark, Archivo headline, Instrument Serif dek. */}
+      <header className="bento p-5 md:p-8" data-testid="story-header">
+        <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+          <span className="story-rank" title={`Score ${why.final_score.toFixed(2)}`} aria-hidden>
+            {scoreMark(why.final_score)}
+          </span>
+          <div className="min-w-0 pb-1.5">
+            <StoryBadges
+              ring={s.ring}
+              update={s.update}
+              hype={ins?.hype_verdict ?? s.hype_verdict}
+              durability={ins?.durability ?? s.durability}
+              degraded={ins?.degraded}
+            />
+          </div>
+        </div>
+        <h1 className="story-headline mt-4 text-[30px] md:text-[40px]">{s.title}</h1>
+        <p className="mt-2 font-mono text-[11px] text-muted">
+          First seen {fmtDate(s.first_seen)} · updated {fmtDate(s.last_updated)}
+          {ins?.reading_time ? ` · ${ins.reading_time} min primary read` : ""}
+        </p>
+        {ins && (
+          <section className="mt-4 border-t border-border pt-4" data-testid="what-happened">
+            <h2 className="label mb-1">What happened</h2>
+            <p className="story-dek">
+              <CitedText text={ins.what_happened} index={idx} />
+            </p>
+          </section>
+        )}
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <StoryActionBar id={s.id} title={s.title} followed={s.followed} />
+          <Link
+            href={`/gym?tab=explain&topic=${encodeURIComponent(s.title.slice(0, 200))}&story=${s.id}`}
+            className="text-sm font-medium text-accent underline underline-offset-2"
+          >
+            Explain this
+          </Link>
+        </div>
+      </header>
 
       {!ins && <p className="mt-6 text-sm text-muted">No insight has been generated for this story yet.</p>}
 
       {ins && (
         <>
-          <Section title="What happened" testId="what-happened">
-            <p>
-              <CitedText text={ins.what_happened} index={idx} />
-            </p>
-          </Section>
-          <Section title="Why it matters to you" testId="why-you">
+          <Section title="Why it matters to you" testId="why-you" tint>
             <p>
               <CitedText text={ins.why_you} index={idx} />
             </p>
@@ -114,10 +135,10 @@ function StoryView({ data }: { data: StoryDetail }) {
               </p>
             </Section>
           )}
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="mt-3.5 grid gap-3.5 sm:grid-cols-2">
             <Card>
-              <h2 className="text-sm font-semibold">Hype check</h2>
-              <p className="mt-1 text-sm font-medium">{HYPE[ins.hype_verdict] ?? ins.hype_verdict}</p>
+              <h2 className="card-title">Hype check</h2>
+              <p className="mt-1.5 text-[17px] font-semibold tracking-tight">{HYPE[ins.hype_verdict] ?? ins.hype_verdict}</p>
               {!!ins.hype_reasons?.length && (
                 <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-muted">
                   {ins.hype_reasons.map((r, i) => (
@@ -129,8 +150,8 @@ function StoryView({ data }: { data: StoryDetail }) {
               )}
             </Card>
             <Card>
-              <h2 className="text-sm font-semibold">Durability</h2>
-              <p className="mt-1 text-sm font-medium">{DURABILITY[ins.durability] ?? ins.durability}</p>
+              <h2 className="card-title">Durability</h2>
+              <p className="mt-1.5 text-[17px] font-semibold tracking-tight">{DURABILITY[ins.durability] ?? ins.durability}</p>
               {ins.durability_reason && <p className="mt-1 text-sm text-muted">{ins.durability_reason}</p>}
             </Card>
           </div>
@@ -163,7 +184,7 @@ function StoryView({ data }: { data: StoryDetail }) {
               </ul>
             </Section>
           )}
-          <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
             {ins.confidence != null && (
               <Badge tone={ins.confidence >= 0.7 ? "good" : ins.confidence >= 0.4 ? "warn" : "bad"} title={ins.confidence_reason ?? undefined}>
                 Confidence {Math.round(ins.confidence * 100)}%
@@ -177,8 +198,8 @@ function StoryView({ data }: { data: StoryDetail }) {
           </div>
           {ins.confidence_reason && <p className="mt-1 text-xs text-muted">{ins.confidence_reason}</p>}
           {idx.size > 0 && (
-            <section className="mt-6">
-              <h2 className="mb-1.5 text-sm font-semibold">Sources</h2>
+            <section className="bento mt-3.5 p-5">
+              <h2 className="card-title mb-2">Sources</h2>
               <CitationList index={idx} />
             </section>
           )}
@@ -189,12 +210,12 @@ function StoryView({ data }: { data: StoryDetail }) {
         {timeline.length === 0 ? (
           <p className="text-sm text-muted">No items.</p>
         ) : (
-          <ol className="relative space-y-3 border-l border-border pl-4">
+          <ol className="relative ml-1 space-y-3.5 border-l border-border-strong pl-4">
             {timeline.map((t) => (
               <li key={t.item_id} data-testid="timeline-item" className="relative">
-                <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-accent" aria-hidden />
+                <span className="glow absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-signal" aria-hidden />
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
-                  <span>{fmtDate(t.published_at)}</span>
+                  <span className="font-mono text-[11px]">{fmtDate(t.published_at)}</span>
                   <Badge tone={t.tier === 1 ? "good" : t.tier === 2 ? "info" : "muted"} title="Source tier">
                     Tier {t.tier}
                   </Badge>
@@ -238,7 +259,7 @@ function StoryView({ data }: { data: StoryDetail }) {
 
       <WhyPanel why={why} />
 
-      <div className="mt-6 flex flex-wrap gap-1.5 border-t border-border pt-4" role="group" aria-label="Feedback">
+      <div className="mt-6 flex flex-wrap gap-1.5 border-t border-border-strong pt-4" role="group" aria-label="Feedback">
         {(
           [
             ["useful", "Useful"],
@@ -261,7 +282,7 @@ function StoryView({ data }: { data: StoryDetail }) {
         </Button>
       </div>
       {ins && (
-        <p className="mt-3 text-[11px] text-muted">
+        <p className="mt-3 font-mono text-[11px] text-muted">
           Insight v{ins.version} · {ins.model} · prompt {ins.prompt_version}
         </p>
       )}
@@ -272,10 +293,10 @@ function StoryView({ data }: { data: StoryDetail }) {
 function WhyPanel({ why }: { why: StoryDetail["why"] }) {
   const subs = Object.entries(why.sub_scores).filter(([, v]) => v != null) as [string, number][];
   return (
-    <details className="mt-6 rounded-lg border border-border bg-surface p-4" data-testid="why-seeing">
+    <details className="bento mt-3.5 p-5" data-testid="why-seeing">
       <summary className="cursor-pointer text-sm font-semibold">Why am I seeing this?</summary>
       <p className="mt-2 text-sm">
-        Final score <span className="font-medium tabular-nums">{why.final_score.toFixed(2)}</span>
+        Final score <span className="num font-semibold">{why.final_score.toFixed(2)}</span>
         {why.matched_profile && <span className="text-muted"> · closest profile match: {why.matched_profile}</span>}
       </p>
       {subs.length > 0 && (
@@ -284,9 +305,9 @@ function WhyPanel({ why }: { why: StoryDetail["why"] }) {
             <div key={k} className="grid grid-cols-[7rem_1fr_auto] items-center gap-2 text-xs">
               <dt className="text-muted">{humanize(k)}</dt>
               <dd className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-                <div className="h-full rounded-full bg-accent" style={{ width: `${Math.max(0, Math.min(1, v)) * 100}%` }} />
+                <div className="glow h-full rounded-full bg-signal" style={{ width: `${Math.max(0, Math.min(1, v)) * 100}%` }} />
               </dd>
-              <dd className="tabular-nums text-muted">
+              <dd className="num text-muted">
                 {v.toFixed(2)}
                 {why.weights?.[k] != null && <span title="weight"> × {why.weights[k]}</span>}
               </dd>

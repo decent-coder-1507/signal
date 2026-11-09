@@ -110,7 +110,7 @@ function AskInner() {
               <Link
                 href={`${pathname}?t=${t.id}`}
                 aria-current={t.id === tid ? "page" : undefined}
-                className={clsx("min-w-0 flex-1 truncate rounded-md px-2 py-1.5 text-sm", t.id === tid ? "bg-surface-2 font-medium" : "text-muted hover:text-text")}
+                className={clsx("min-w-0 flex-1 truncate rounded-[10px] px-2.5 py-1.5 text-sm", t.id === tid ? "bg-surface font-semibold shadow-[var(--nav-active-shadow)]" : "text-muted hover:text-text")}
                 title={`${t.title} · ${fmtDateTime(t.updated_at)}`}
               >
                 {t.title}
@@ -196,7 +196,7 @@ function Chat({ threadId, onThread }: { threadId: string | null; onThread: (id: 
         <div ref={bottom} />
       </div>
       <form
-        className="sticky bottom-20 mt-4 rounded-lg border border-border bg-surface p-2 shadow-sm md:bottom-4"
+        className="sticky bottom-20 mt-4 bento p-2 shadow-sm focus-within:border-accent md:bottom-4"
         onSubmit={(e) => {
           e.preventDefault();
           void send(q);
@@ -243,7 +243,7 @@ function Chat({ threadId, onThread }: { threadId: string | null; onThread: (id: 
 function UserMsg({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <p className="max-w-[85%] whitespace-pre-wrap rounded-lg bg-surface-2 px-3 py-2 text-sm">{text}</p>
+      <p className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md border border-border bg-surface px-3.5 py-2.5 text-sm">{text}</p>
     </div>
   );
 }
@@ -279,7 +279,7 @@ function Answer({ m }: { m: Msg }) {
     onError: (e) => toast(errMsg(e), "bad"),
   });
   return (
-    <article className="rounded-lg border border-border bg-surface p-4" data-testid="answer">
+    <article className="bento p-5" data-testid="answer">
       {m.mode && !["answer", "ask"].includes(m.mode) && <Badge tone="muted">{m.mode}</Badge>}
       <div className="prose-signal space-y-2 text-[15px] leading-relaxed">
         {body

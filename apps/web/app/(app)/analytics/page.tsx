@@ -76,20 +76,20 @@ export default function AnalyticsPage() {
                 {Object.entries(s.by_platform).map(([p, v]) => (
                   <Card key={p}>
                     <div className="mb-2 flex items-baseline justify-between">
-                      <h2 className="font-serif text-lg font-semibold">{humanize(p)}</h2>
+                      <h2 className="tracking-tight text-lg font-semibold">{humanize(p)}</h2>
                       <span className="text-xs text-muted">{v.posts} posts</span>
                     </div>
                     <dl className="grid grid-cols-3 gap-2 text-center">
                       <div>
-                        <dd className="font-semibold tabular-nums">{num(v.median_impressions)}</dd>
+                        <dd className="num text-xl font-semibold">{num(v.median_impressions)}</dd>
                         <dt className="text-[11px] text-muted">median impr.</dt>
                       </div>
                       <div>
-                        <dd className="font-semibold tabular-nums">{pct(v.median_engagement)}</dd>
+                        <dd className="num text-xl font-semibold">{pct(v.median_engagement)}</dd>
                         <dt className="text-[11px] text-muted">median eng.</dt>
                       </div>
                       <div>
-                        <dd className={`font-semibold tabular-nums ${v.vs_baseline_impressions == null ? "" : v.vs_baseline_impressions >= 1 ? "text-good" : "text-warn"}`}>
+                        <dd className={`num text-xl font-semibold ${v.vs_baseline_impressions == null ? "" : v.vs_baseline_impressions >= 1 ? "text-good" : "text-warn"}`}>
                           {v.vs_baseline_impressions == null ? "—" : `${v.vs_baseline_impressions.toFixed(2)}×`}
                         </dd>
                         <dt className="text-[11px] text-muted">vs baseline</dt>
@@ -106,7 +106,7 @@ export default function AnalyticsPage() {
             {Object.keys(s.breakdowns).length > 0 && <Breakdowns b={s.breakdowns} />}
             {s.top_posts.length > 0 && (
               <Card>
-                <h2 className="mb-2 text-sm font-semibold">Top posts</h2>
+                <h2 className="card-title mb-2">Top posts</h2>
                 <ol className="space-y-1.5 text-sm">
                   {s.top_posts.map((t) => (
                     <li key={t.publication_id} className="flex flex-wrap items-center gap-2">
@@ -143,7 +143,7 @@ export default function AnalyticsPage() {
 function Breakdowns({ b }: { b: Summary["breakdowns"] }) {
   return (
     <Card>
-      <h2 className="mb-1 text-sm font-semibold">What seems to work</h2>
+      <h2 className="card-title mb-1">What seems to work</h2>
       <p className="mb-3 text-xs text-muted">Median engagement per variable value. Rows marked “small sample” are noise until proven otherwise.</p>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {Object.entries(b).map(([variable, vals]) => (
@@ -215,7 +215,7 @@ function BaselineForm() {
   );
   return (
     <Card>
-      <h2 className="mb-1 text-sm font-semibold">Add a baseline post</h2>
+      <h2 className="card-title mb-1">Add a baseline post</h2>
       <p className="mb-3 text-xs text-muted">One of your last 10 posts from before SIGNAL — the yardstick for everything after.</p>
       <form
         className="space-y-3"
@@ -275,7 +275,7 @@ function MetricsForm() {
   const chosen = pid || own[0]?.id || "";
   return (
     <Card>
-      <h2 className="mb-1 text-sm font-semibold">Log metrics for a post</h2>
+      <h2 className="card-title mb-1">Log metrics for a post</h2>
       <p className="mb-3 text-xs text-muted">Check at 48 h and 7 days — a one-minute habit.</p>
       {own.length === 0 ? (
         <p className="text-sm text-muted">No published posts yet. Mark a draft as Posted in Studio first.</p>
@@ -340,7 +340,7 @@ function CsvImport() {
   });
   return (
     <Card>
-      <h2 className="mb-2 text-sm font-semibold">Import a CSV export</h2>
+      <h2 className="card-title mb-2">Import a CSV export</h2>
       <form
         className="flex flex-wrap items-end gap-2"
         onSubmit={(e) => {

@@ -84,7 +84,7 @@ export function ExplainerPanel({
             aria-pressed={depth === d.id}
             disabled={gen.isPending}
             onClick={() => run(d.id)}
-            className={clsx("min-h-8 rounded-full border px-3 text-xs", depth === d.id ? "border-accent bg-accent/10 text-accent" : "border-border text-muted")}
+            className={clsx("min-h-8 rounded-full border px-3 text-xs", depth === d.id ? "border-primary bg-primary text-primary-contrast" : "border-border-strong bg-surface text-muted")}
           >
             {d.label}
           </button>
@@ -93,7 +93,7 @@ export function ExplainerPanel({
       {gen.error && <p role="alert" className="text-sm text-bad">{errMsg(gen.error)}</p>}
       {ex && (
         <Card data-testid="explainer">
-          <h2 className="font-serif text-xl font-semibold">{ex.topic}</h2>
+          <h2 className="tracking-tight text-xl font-semibold">{ex.topic}</h2>
           <p className="mb-3 text-xs text-muted">{ex.depth} depth</p>
           <Markdown source={numberCitations(ex.body, index)} />
           {index.size > 0 && (

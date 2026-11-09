@@ -41,7 +41,7 @@ export function RenderPanel({ draft }: { draft: Draft }) {
   return (
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">Visuals</h2>
+        <h2 className="card-title">Visuals</h2>
         <div className="flex flex-wrap gap-2">
           {pdf && (
             <a className={buttonClass("secondary", "sm")} href={assetSrc(pdf)} download>
@@ -96,7 +96,7 @@ export function SlideEditor({ draft }: { draft: Draft }) {
         {items.map((s, i) => {
           const words = `${s.title} ${s.body ?? ""}`.split(/\s+/).filter(Boolean).length;
           return (
-            <li key={i} className="rounded-lg border border-border bg-surface p-3">
+            <li key={i} className="bento p-3">
               <div className="flex items-center justify-between text-xs text-muted">
                 <span>Slide {i + 1}</span>
                 <span className={words > 30 ? "font-semibold text-bad" : ""}>{words} words</span>
@@ -153,9 +153,9 @@ export function ReelTable({ draft }: { draft: Draft }) {
         <Badge tone={total >= 30 && total <= 60 ? "good" : "warn"}>Total {total}s</Badge>
         {s.audio_mood && <Badge tone="muted">Audio: {s.audio_mood}</Badge>}
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="bento overflow-x-auto">
         <table className="w-full min-w-[560px] text-sm">
-          <thead className="bg-surface-2 text-left text-xs text-muted">
+          <thead className="text-left font-mono text-[11px] uppercase tracking-wider text-muted">
             <tr>
               <th className="px-2 py-1.5 font-medium">Time</th>
               <th className="px-2 py-1.5 font-medium">Voice-over</th>
@@ -196,7 +196,7 @@ export function ArticlePreview({ draft }: { draft: Draft }) {
   return (
     <article className="space-y-3" data-testid="article-preview">
       <header>
-        <h2 className="font-serif text-2xl font-semibold leading-tight">{a.seo_title}</h2>
+        <h2 className="tracking-tight text-2xl font-semibold leading-tight">{a.seo_title}</h2>
         {a.subtitle && <p className="text-muted">{a.subtitle}</p>}
         <p className="mt-1 text-xs text-muted">SEO title: {a.seo_title.length} / 70 characters</p>
       </header>

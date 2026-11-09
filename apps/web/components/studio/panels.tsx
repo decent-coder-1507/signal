@@ -38,7 +38,7 @@ export function SourcesPanel({ draft }: { draft: Draft }) {
     <div className="space-y-4">
       {idea && (
         <Card>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Angle</h2>
+          <h2 className="label">Angle</h2>
           <div className="mt-1 flex flex-wrap gap-1">
             <Badge tone="accent">{humanize(idea.angle_type)}</Badge>
             {idea.risk !== "low" && <Badge tone="warn">{idea.risk} risk</Badge>}
@@ -48,7 +48,7 @@ export function SourcesPanel({ draft }: { draft: Draft }) {
         </Card>
       )}
       <Card>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Sources</h2>
+        <h2 className="label">Sources</h2>
         {story.data && (
           <ul className="mt-1.5 space-y-1.5 text-sm">
             {story.data.timeline.map((t) => (
@@ -70,7 +70,7 @@ export function SourcesPanel({ draft }: { draft: Draft }) {
         {!story.data && sourceIds.length === 0 && <p className="mt-1 text-sm text-muted">No external sources.</p>}
       </Card>
       <Card data-testid="claims">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Claims</h2>
+        <h2 className="label">Claims</h2>
         {claims.length === 0 ? (
           <p className="mt-1 text-sm text-muted">No factual claims.</p>
         ) : (
@@ -119,9 +119,9 @@ export function ScorePanel({
     <div className="space-y-4">
       <Card data-testid="scorecard">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Scorecard</h2>
+          <h2 className="label">Scorecard</h2>
           {g && (
-            <span className={clsx("font-serif text-2xl font-semibold tabular-nums", g.total >= 8 ? "text-good" : "text-warn")} data-testid="score-total">
+            <span className={clsx("num text-2xl font-semibold", g.total >= 8 ? "text-good" : "text-warn")} data-testid="score-total">
               {g.total.toFixed(1)}
               <span className="text-sm text-muted"> / 10 · target 8</span>
             </span>
@@ -146,7 +146,7 @@ export function ScorePanel({
       </Card>
       {!!g?.top_edits.length && (
         <Card>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Top edits</h2>
+          <h2 className="label">Top edits</h2>
           <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm">
             {g.top_edits.map((e, i) => (
               <li key={i}>{e}</li>
@@ -156,7 +156,7 @@ export function ScorePanel({
       )}
       {!!g?.ai_phrases.length && (
         <Card>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Sounds AI-written</h2>
+          <h2 className="label">Sounds AI-written</h2>
           <div className="mt-1 flex flex-wrap gap-1">
             {g.ai_phrases.map((p) => (
               <Badge key={p} tone="warn">
@@ -167,7 +167,7 @@ export function ScorePanel({
         </Card>
       )}
       <Card data-testid="factcheck">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Fact-check</h2>
+        <h2 className="label">Fact-check</h2>
         {!fc || (!fc.results.length && !fc.uncited_sentences.length) ? (
           <p className="mt-1 text-sm text-muted">No factual claims to check.</p>
         ) : (
@@ -191,7 +191,7 @@ export function ScorePanel({
       </Card>
       {ch && (
         <Card>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Checks</h2>
+          <h2 className="label">Checks</h2>
           <dl className="mt-1.5 space-y-2 text-sm">
             <div>
               <dt className="font-medium">Originality</dt>
@@ -235,7 +235,7 @@ function Versions({ draft, onPick, picking }: { draft: Draft; onPick: (id: strin
   const prevOf = (v: DraftVersion) => vs.find((x) => x.version < v.version);
   return (
     <Card>
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Versions</h2>
+      <h2 className="label">Versions</h2>
       <ul className="mt-1.5 space-y-1.5 text-sm">
         {vs.map((v) => {
           const prev = prevOf(v);

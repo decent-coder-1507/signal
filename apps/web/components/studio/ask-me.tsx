@@ -23,7 +23,7 @@ export function AskMe({ draft }: { draft: Draft }) {
   const filled = draft.pending_questions.some((_, i) => (answers[String(i)] ?? "").trim());
   return (
     <Card className="mx-auto max-w-2xl" data-testid="ask-me">
-      <h2 className="font-serif text-xl font-semibold">A few questions first</h2>
+      <h2 className="tracking-tight text-xl font-semibold">A few questions first</h2>
       <p className="mt-1 text-sm text-muted">
         This angle needs a real detail from you. SIGNAL never invents personal experience; your answers are the only source
         for it.

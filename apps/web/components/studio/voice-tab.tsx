@@ -47,7 +47,7 @@ function VoiceForm({ v }: { v: Voice }) {
   return (
     <div className="space-y-4">
       <Card>
-        <h2 className="mb-2 text-sm font-semibold">Voice v{v.version}</h2>
+        <h2 className="card-title mb-2">Voice v{v.version}</h2>
         <dl className="space-y-1 text-xs">
           {Object.entries(v.rules)
             .filter(([k]) => !["banned_patterns", "banned_chars"].includes(k))
@@ -80,7 +80,7 @@ function VoiceForm({ v }: { v: Voice }) {
         </form>
       </Card>
       <Card>
-        <h2 className="mb-2 text-sm font-semibold">History</h2>
+        <h2 className="card-title mb-2">History</h2>
         <ol className="space-y-1 text-sm">
           {[...v.history].reverse().map((h) => (
             <li key={h.version} className="flex justify-between gap-2">
@@ -123,7 +123,7 @@ function ReferencePosts() {
         </p>
       )}
       <Card>
-        <h2 className="mb-2 text-sm font-semibold">Reference posts ({own} yours)</h2>
+        <h2 className="card-title mb-2">Reference posts ({own} yours)</h2>
         <form
           className="space-y-2"
           onSubmit={(e) => {
@@ -135,7 +135,7 @@ function ReferencePosts() {
             <textarea className={inputClass} rows={4} value={text} onChange={(e) => setText(e.target.value)} />
           </Field>
           <div className="flex flex-wrap gap-2">
-            <select aria-label="Platform" className="min-h-10 rounded-md border border-border bg-surface px-2 text-sm" value={platform} onChange={(e) => setPlatform(e.target.value)}>
+            <select aria-label="Platform" className="min-h-10 rounded-[10px] border border-border-strong bg-surface px-2 text-sm" value={platform} onChange={(e) => setPlatform(e.target.value)}>
               <option value="linkedin">LinkedIn</option>
               <option value="x">X</option>
               <option value="instagram">Instagram</option>

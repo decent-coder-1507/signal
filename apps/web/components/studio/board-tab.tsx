@@ -31,10 +31,10 @@ export function BoardTab() {
           {COLS.map((c) => {
             const cards = q.data[c.id] ?? [];
             return (
-              <section key={c.id} aria-label={c.label} data-testid={`column-${c.id}`} className="min-w-0 rounded-lg bg-surface-2 p-2">
-                <h2 className="mb-2 flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              <section key={c.id} aria-label={c.label} data-testid={`column-${c.id}`} className="min-h-48 min-w-0 rounded-[18px] border border-border bg-sidebar p-2.5">
+                <h2 className="mb-2 flex items-center justify-between px-1 font-mono text-[11px] font-medium uppercase tracking-wider text-muted">
                   {c.label}
-                  <span className="tabular-nums">{cards.length}</span>
+                  <span className="chip num">{cards.length}</span>
                 </h2>
                 <ul className="space-y-2">
                   {cards.map((card) =>
@@ -43,7 +43,7 @@ export function BoardTab() {
                         <button
                           type="button"
                           onClick={() => setIdea(card)}
-                          className="block w-full rounded-md border border-border bg-surface p-2 text-left text-sm hover:border-accent"
+                          className="block w-full rounded-xl border border-border bg-surface p-3 text-left text-sm shadow-[var(--card-shadow)] transition-colors hover:border-accent"
                         >
                           <Badge tone="accent">{humanize(card.angle_type)}</Badge>
                           <span className="mt-1 line-clamp-3 block">{card.thesis}</span>
@@ -54,13 +54,13 @@ export function BoardTab() {
                         <Link
                           href={`/studio/drafts/${card.id}`}
                           data-testid="board-draft"
-                          className="block rounded-md border border-border bg-surface p-2 text-sm hover:border-accent"
+                          className="block rounded-xl border border-border bg-surface p-3 text-sm shadow-[var(--card-shadow)] transition-colors hover:border-accent"
                         >
                           <span className="flex flex-wrap items-center gap-1">
                             <Badge tone="muted">{PLATFORM_LABEL[card.platform] ?? card.platform}</Badge>
                             {card.post_within_24h && <Badge tone="warn">24 h</Badge>}
                             {card.current?.grade && (
-                              <span className={clsx("text-xs tabular-nums", card.current.grade.total >= 8 ? "text-good" : "text-muted")}>
+                              <span className={clsx("num text-xs font-semibold", card.current.grade.total >= 8 ? "text-good" : "text-muted")}>
                                 {card.current.grade.total.toFixed(1)}
                               </span>
                             )}

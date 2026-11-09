@@ -140,7 +140,7 @@ function Wizard({ review, kind }: { review: Review; kind: Kind }) {
   if (review.completed_at)
     return (
       <Card data-testid="review-completed" className="text-center">
-        <p className="font-serif text-2xl font-semibold">Review completed</p>
+        <p className="tracking-tight text-2xl font-semibold">Review completed</p>
         <p className="mt-1 text-sm text-muted">All {c.flow.length} steps done. See you next {kind === "weekly" ? "week" : "month"}.</p>
         <details className="mt-4 text-left">
           <summary className="cursor-pointer text-sm text-muted">Look back at this review</summary>
@@ -185,7 +185,7 @@ function Wizard({ review, kind }: { review: Review; kind: Kind }) {
       </nav>
       <Card data-testid="review-step" data-step={step}>
         <div className="mb-3 flex items-baseline justify-between gap-2">
-          <h2 className="font-serif text-xl font-semibold">{stepTitle(step, section)}</h2>
+          <h2 className="tracking-tight text-xl font-semibold">{stepTitle(step, section)}</h2>
           <span className="text-xs text-muted">
             Step {i + 1} of {c.flow.length}
           </span>

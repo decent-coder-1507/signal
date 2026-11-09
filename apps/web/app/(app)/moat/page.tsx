@@ -105,7 +105,7 @@ function Point({ p, ev }: { p: MoatPoint; ev: MoatRadar["evidence"] }) {
 function Column({ title, icon, points, ev, tone }: { title: string; icon: ReactNode; points: MoatPoint[]; ev: MoatRadar["evidence"]; tone: string }) {
   return (
     <Card>
-      <h2 className={`mb-3 flex items-center gap-1.5 font-serif text-lg font-semibold ${tone}`}>
+      <h2 className={`mb-3 flex items-center gap-1.5 tracking-tight text-lg font-semibold ${tone}`}>
         {icon}
         {title}
       </h2>
@@ -127,7 +127,7 @@ function Report({ r }: { r: MoatRadar }) {
         <Column title="Appreciating" icon={<TrendingUp size={18} aria-hidden />} points={r.appreciating} ev={r.evidence} tone="text-good" />
       </div>
       <Card>
-        <h2 className="mb-3 font-serif text-lg font-semibold">For you</h2>
+        <h2 className="mb-3 tracking-tight text-lg font-semibold">For you</h2>
         <div className="grid gap-4 md:grid-cols-3">
           {(
             [
@@ -137,7 +137,7 @@ function Report({ r }: { r: MoatRadar }) {
             ] as const
           ).map(([t, pts]) => (
             <div key={t}>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t}</h3>
+              <h3 className="label mb-2">{t}</h3>
               {pts.length === 0 ? <p className="text-sm text-muted">—</p> : <ul className="space-y-3 text-sm">{pts.map((p, i) => <Point key={i} p={p} ev={r.evidence} />)}</ul>}
             </div>
           ))}
@@ -146,7 +146,7 @@ function Report({ r }: { r: MoatRadar }) {
       <Column title="For builders" icon={null} points={r.for_builders} ev={r.evidence} tone="" />
       <Card>
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-serif text-lg font-semibold">Predictions scorecard</h2>
+          <h2 className="tracking-tight text-lg font-semibold">Predictions scorecard</h2>
           <span className="text-sm text-muted">
             {sc.resolved} of {sc.total} resolved{sc.accuracy != null && ` · ${Math.round(sc.accuracy * 100)}% right`}
           </span>

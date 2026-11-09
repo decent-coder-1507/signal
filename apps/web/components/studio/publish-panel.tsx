@@ -51,7 +51,7 @@ export function PublishPanel({ draft }: { draft: Draft }) {
   return (
     <Card data-testid="publish-panel">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold">Publish</h2>
+        <h2 className="card-title">Publish</h2>
         <Badge tone={s === "published" ? "good" : ready ? "accent" : "muted"}>{s}</Badge>
         {draft.post_within_24h && <Badge tone="warn">Post within 24 h</Badge>}
         {draft.evergreen && <Badge tone="info">Evergreen</Badge>}

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { RadarChart } from "@/components/radar-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, Metric } from "@/components/ui/card";
 import { inputClass } from "@/components/ui/field";
 import { get, post } from "@/lib/api";
 import { CITE_RE } from "@/lib/citations";
@@ -50,9 +50,8 @@ export function LearnNextPanel({ onExplain }: { onExplain: (topic: string) => vo
       {d.items.map((it, i) => (
         <Card key={it.skill_id}>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-serif text-lg font-semibold">
-              {i + 1}. {it.skill}
-            </span>
+            <span className="num text-xs font-semibold text-muted">{String(i + 1).padStart(2, "0")}</span>
+            <span className="text-[17px] font-semibold tracking-tight">{it.skill}</span>
             {it.plan.time_estimate && <Badge tone="muted">{it.plan.time_estimate}</Badge>}
           </div>
           <p className="mt-1 text-sm">
@@ -60,7 +59,7 @@ export function LearnNextPanel({ onExplain }: { onExplain: (topic: string) => vo
           </p>
           <dl className="mt-3 space-y-2 text-sm">
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Explainer</dt>
+              <dt className="label">Explainer</dt>
               <dd className="flex flex-wrap items-center gap-2">
                 {it.plan.explainer_topic}
                 <Button size="sm" onClick={() => onExplain(it.plan.explainer_topic)}>
@@ -70,7 +69,7 @@ export function LearnNextPanel({ onExplain }: { onExplain: (topic: string) => vo
             </div>
             {it.plan.resources.length > 0 && (
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Resources</dt>
+                <dt className="label">Resources</dt>
                 <dd>
                   <ul className="list-disc pl-5">
                     {it.plan.resources.map((r) => (
@@ -90,19 +89,19 @@ export function LearnNextPanel({ onExplain }: { onExplain: (topic: string) => vo
             )}
             {it.plan.practical && (
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Practical</dt>
+                <dt className="label">Practical</dt>
                 <dd>{it.plan.practical}</dd>
               </div>
             )}
             {it.plan.done_definition && (
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Done when</dt>
+                <dt className="label">Done when</dt>
                 <dd>{it.plan.done_definition}</dd>
               </div>
             )}
             {it.ignore_instead && (
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Skip instead</dt>
+                <dt className="label">Skip instead</dt>
                 <dd className="text-muted">{it.ignore_instead}</dd>
               </div>
             )}
@@ -111,7 +110,7 @@ export function LearnNextPanel({ onExplain }: { onExplain: (topic: string) => vo
       ))}
       {d.ignore.length > 0 && (
         <Card>
-          <h2 className="text-sm font-semibold">Safe to ignore for now</h2>
+          <h2 className="card-title">Safe to ignore for now</h2>
           <ul className="mt-1 list-disc pl-5 text-sm text-muted">
             {d.ignore.map((x, i) => (
               <li key={i}>{x}</li>
@@ -155,7 +154,7 @@ export function QuizPanel() {
             attempt.mutate();
           }}
         >
-          <h2 className="font-serif text-xl font-semibold">{qz.title}</h2>
+          <h2 className="text-xl font-semibold tracking-tight">{qz.title}</h2>
           {qz.questions.map((q, i) => {
             const right = res && res.answers[i] && answers[i].trim().toLowerCase() === res.answers[i].trim().toLowerCase();
             return (
@@ -198,7 +197,7 @@ export function QuizPanel() {
           })}
           {res ? (
             <div className="flex items-center gap-3">
-              <p className="font-serif text-2xl font-semibold" data-testid="quiz-score">
+              <p className="num text-3xl font-semibold" data-testid="quiz-score">
                 {Math.round(res.score * 100)}%
               </p>
               <Button
@@ -227,17 +226,46 @@ export function ProgressPanel() {
   const q = useQuery({ queryKey: ["gym", "progress"], queryFn: () => get<Progress>("/gym/progress") });
   const p = q.data;
   if (!p) return <p className="text-sm text-muted">Loading…</p>;
-  const stats: [string, string][] = [
-    ["Learning streak", `${p.learning_streak} day${p.learning_streak === 1 ? "" : "s"}`],
-    ["Retention (30 d)", p.retention == null ? "—" : `${Math.round(p.retention * 100)}%`],
+  const stats: [string, string, string?][] = [
+    ["Retention (30 d)", p.retention == null ? "—" : `${Math.round(p.retention * 100)}`, p.retention == null ? undefined : "%"],
     ["Cards reviewed (30 d)", String(p.cards_reviewed_30d)],
     ["Concepts this month", String(p.concepts_this_month)],
     ["Due now", String(p.due_now)],
   ];
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card>
-        <h2 className="mb-2 text-sm font-semibold">Skill radar</h2>
+    <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+      <Card invert className="col-span-2 flex flex-col justify-between lg:col-span-1">
+        <dl>
+          <dt className="label text-[var(--invert-muted)]">Learning streak</dt>
+          <dd className="num mt-1.5 text-[40px] font-semibold leading-none text-[var(--invert-mark)]">
+            {p.learning_streak}
+            <span className="ml-1.5 font-sans text-sm font-normal tracking-normal text-[var(--invert-muted)]">
+              day{p.learning_streak === 1 ? "" : "s"}
+            </span>
+          </dd>
+        </dl>
+        <div className="mt-4 flex h-2.5 items-end gap-1" aria-hidden title="Last 7 days">
+          {Array.from({ length: 7 }, (_, i) => (
+            <i
+              key={i}
+              className="flex-1 rounded-[3px]"
+              style={{
+                height: "100%",
+                background: i < Math.min(7, p.learning_streak) ? "var(--invert-mark)" : "var(--invert-track)",
+              }}
+            />
+          ))}
+        </div>
+      </Card>
+      <Card className="col-span-2 lg:col-span-3">
+        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {stats.map(([k, v, unit]) => (
+            <Metric key={k} label={k} value={v} unit={unit} />
+          ))}
+        </dl>
+      </Card>
+      <Card className="col-span-2">
+        <h2 className="card-title mb-2">Skill radar</h2>
         <RadarChart
           label="Current vs target by domain"
           axes={p.radar.map((r) => r.domain)}
@@ -248,19 +276,9 @@ export function ProgressPanel() {
           ]}
         />
       </Card>
-      <div className="space-y-4">
-        <Card>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {stats.map(([k, v]) => (
-              <div key={k}>
-                <dd className="font-serif text-xl font-semibold tabular-nums">{v}</dd>
-                <dt className="text-xs text-muted">{k}</dt>
-              </div>
-            ))}
-          </dl>
-        </Card>
-        <Card data-testid="time-split">
-          <h2 className="mb-1 text-sm font-semibold">Where your learning goes (this month)</h2>
+      <div className="col-span-2">
+        <Card data-testid="time-split" className="h-full">
+          <h2 className="card-title mb-1">Where your learning goes (this month)</h2>
           <p className="mb-3 text-xs text-muted">Target 50 / 30 / 20 — fundamentals outlast tools.</p>
           <ul className="space-y-3">
             {Object.entries(p.target_split).map(([k, target]) => {
@@ -269,12 +287,12 @@ export function ProgressPanel() {
                 <li key={k}>
                   <div className="flex justify-between text-sm">
                     <span>{SPLIT_LABEL[k] ?? humanize(k)}</span>
-                    <span className="tabular-nums text-muted">
-                      {actual}% <span className="text-xs">/ target {target}%</span>
+                    <span className="num text-muted">
+                      {actual}% <span className="font-sans text-xs tracking-normal">/ target {target}%</span>
                     </span>
                   </div>
                   <div className="relative mt-1 h-2 rounded-full bg-surface-2">
-                    <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, actual)}%` }} />
+                    <div className="glow h-full rounded-full bg-signal" style={{ width: `${Math.min(100, actual)}%` }} />
                     <div className="absolute top-[-3px] h-[14px] w-0.5 bg-text" style={{ left: `${target}%` }} title={`target ${target}%`} />
                   </div>
                 </li>

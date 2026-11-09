@@ -63,7 +63,7 @@ export default function OnboardingPage() {
   const ready = profile.data && sources.data && settings.data && routines.data;
   return (
     <main className="mx-auto min-h-dvh max-w-2xl px-4 py-8">
-      <p className="font-serif text-xl font-semibold tracking-tight">SIGNAL</p>
+      <p className="flex items-center gap-2 text-lg font-bold tracking-tight"><span className="glow h-[22px] w-[22px] rounded-[7px] bg-primary" aria-hidden />Signal</p>
       {ready ? (
         <Wizard profile={profile.data!} sources={sources.data!} settings={settings.data!} routines={routines.data!} />
       ) : profile.error ? (
@@ -176,7 +176,7 @@ function Wizard({
             <li
               key={t}
               title={t}
-              className={clsx("h-1.5 flex-1 rounded-full", i <= step ? "bg-accent" : "bg-surface-2")}
+              className={clsx("h-1.5 flex-1 rounded-full", i <= step ? "glow bg-signal" : "bg-border-strong")}
               aria-current={i === step ? "step" : undefined}
             >
               <span className="sr-only">{t}</span>
@@ -187,6 +187,7 @@ function Wizard({
 
       <form
         aria-label={STEP_TITLES[step]}
+        className="bento p-5 md:p-7"
         onSubmit={(e) => {
           e.preventDefault();
           if (!valid[step]) return;
@@ -194,7 +195,7 @@ function Wizard({
           else setStep(step + 1);
         }}
       >
-        <h1 className="font-serif text-2xl font-semibold tracking-tight">{STEP_TITLES[step]}</h1>
+        <h1 className="text-[26px] font-bold tracking-[-0.025em]">{STEP_TITLES[step]}</h1>
 
         <div className="mt-4 space-y-4">
           {step === 0 && (
@@ -217,7 +218,7 @@ function Wizard({
               <Intro>Core topics lead your brief; adjacent ones appear when they clear a higher bar. Weights tune how much each matters.</Intro>
               <ul className="space-y-2">
                 {topics.map((t, i) => (
-                  <li key={t.name} className="rounded-md border border-border bg-surface p-3">
+                  <li key={t.name} className="rounded-xl border border-border bg-surface p-3.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-sm font-medium">{t.name}</span>
                       <select
@@ -308,7 +309,7 @@ function Wizard({
                 The starter pack is on. Switch off anything you do not want; OPML import and custom feeds live in Settings →
                 Sources.
               </Intro>
-              <ul className="divide-y divide-border rounded-md border border-border bg-surface">
+              <ul className="bento divide-y divide-border overflow-hidden">
                 {sources.map((s) => (
                   <li key={s.id} className="flex items-center justify-between gap-3 px-3 py-2">
                     <span className="min-w-0 text-sm">
@@ -342,7 +343,7 @@ function Wizard({
                   </select>
                 </Field>
               </div>
-              <div className="rounded-md border border-border bg-surface p-3 text-sm">
+              <div className="rounded-xl border border-border bg-surface p-3.5 text-sm">
                 <p className="font-medium">Channels</p>
                 <p className="mt-1 text-muted">The brief always appears here in the app. Telegram: connect later from Settings.</p>
               </div>
