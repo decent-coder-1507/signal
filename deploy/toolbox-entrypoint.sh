@@ -16,11 +16,7 @@ retry uv sync --frozen --all-packages --all-extras -q
 echo "toolbox: node deps"
 retry pnpm install --frozen-lockfile --network-concurrency=2 --reporter=silent
 
-if [ ! -f /ms-playwright/.system-deps-ok ]; then
-  echo "toolbox: browser system libraries (first run only)"
-  uv run --no-sync python -m playwright install-deps chromium
-  touch /ms-playwright/.system-deps-ok
-fi
+# Browser system libraries are baked into the image (toolbox.Dockerfile); the browsers themselves live in a volume.
 echo "toolbox: browsers"
 retry uv run --no-sync python -m playwright install chromium
 (cd apps/web && retry pnpm exec playwright install chromium)

@@ -14,6 +14,10 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates postgresql-client \
  && rm -rf /var/lib/apt/lists/* \
  && pip install --no-cache-dir uv
+# Chromium's system libraries belong in the image (a --rm container can't keep apt installs). Version = uv.lock.
+RUN pip install --no-cache-dir playwright==1.64.1 \
+ && playwright install-deps chromium \
+ && pip uninstall -y playwright && rm -rf /var/lib/apt/lists/*
 ENV CI=1 UV_PROJECT_ENVIRONMENT=/venv UV_LINK_MODE=copy PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     SIGNAL_RENDER_CHANNEL= COREPACK_ENABLE_DOWNLOAD_PROMPT=0 PYTHONUNBUFFERED=1
 WORKDIR /workspace

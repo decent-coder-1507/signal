@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy.engine import make_url
+from sqlalchemy.engine import URL, make_url
 
 from signal_core.settings import get_settings
 
@@ -36,6 +36,11 @@ class BackupResult:
 
 _PGPASSWORD: dict[str, str] = {}
 _CRED = re.compile(r"://[^:/@\s]+:[^@\s]+@")
+
+
+def _url(u: URL) -> str:
+    """URL with its real password: `str(URL)` masks it as `***` in SQLAlchemy 2, which broke psql auth."""
+    return u.render_as_string(hide_password=False)
 
 
 def _pg_cmd(tool: str, args: list[str], db_url: str) -> list[str]:
@@ -140,13 +145,13 @@ def restore(dump: Path, target_db_url: str, create: bool = True) -> None:
     """Restore a dump into the target database (dropping existing objects). Used by the drill and real restores."""
     u = make_url(target_db_url.replace("+asyncpg", ""))
     if create:
-        admin = str(u.set(database="postgres"))
+        admin = _url(u.set(database="postgres"))
         q = f"select 1 from pg_database where datname='{u.database}';"
         exists = _run(_pg_cmd("psql", ["-tA", "-f", "-"], admin), stdin=q.encode())
         if not exists.strip():
             _run(_pg_cmd("psql", ["-f", "-"], admin), stdin=f'CREATE DATABASE "{u.database}";'.encode())
     _run(
-        _pg_cmd("pg_restore", ["--clean", "--if-exists", "--no-owner", "--exit-on-error"], str(u)),
+        _pg_cmd("pg_restore", ["--clean", "--if-exists", "--no-owner", "--exit-on-error"], _url(u)),
         stdin=dump.read_bytes(),
     )
 
@@ -165,7 +170,7 @@ def drill(db_url: str | None = None, scratch_db: str = "signal_restore_drill") -
     s = get_settings()
     src = (db_url or s.database_url).replace("+asyncpg", "")
     res = backup(db_url=src)
-    target = str(make_url(src).set(database=scratch_db))
+    target = _url(make_url(src).set(database=scratch_db))
     t0 = datetime.now(UTC)
     restore(res.dump, target)
     seconds = (datetime.now(UTC) - t0).total_seconds()
