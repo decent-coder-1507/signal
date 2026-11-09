@@ -164,7 +164,7 @@ function AddSource({ onAdded }: { onAdded: () => void }) {
   });
   return (
     <Card>
-      <h2 className="mb-2 text-sm font-semibold">Add a source</h2>
+      <h2 className="card-title mb-2">Add a source</h2>
       <form
         className="space-y-3"
         aria-label="Add source"
@@ -227,7 +227,7 @@ function OpmlImport({ onDone }: { onDone: () => void }) {
   });
   return (
     <Card>
-      <h2 className="mb-2 text-sm font-semibold">Import OPML</h2>
+      <h2 className="card-title mb-2">Import OPML</h2>
       <p className="mb-3 text-sm text-muted">Bring your feeds from another reader. Duplicates are skipped.</p>
       <form
         className="space-y-3"

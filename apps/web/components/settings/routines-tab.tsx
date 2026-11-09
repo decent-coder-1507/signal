@@ -48,7 +48,7 @@ export function RoutinesTab() {
     <div className="space-y-4">
       <ul className="space-y-2" aria-label="Routines">
         {(q.data ?? []).map((r) => (
-          <li key={r.id} data-testid="routine" className="rounded-lg border border-border bg-surface p-3">
+          <li key={r.id} data-testid="routine" className="bento p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-mono text-sm font-medium">{r.name}</p>

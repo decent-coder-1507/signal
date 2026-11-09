@@ -27,14 +27,15 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-4">
-      <h1 className="font-serif text-3xl font-semibold tracking-tight">SIGNAL</h1>
+    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-4 py-10">
+      <span className="glow mb-5 h-9 w-9 rounded-[11px] bg-primary" aria-hidden />
+      <h1 className="text-3xl font-bold tracking-[-0.03em]">SIGNAL</h1>
       <p className="mt-1 text-sm text-muted">Less, but better.</p>
-      <form onSubmit={submit} className="mt-8 space-y-3" aria-label="Sign in">
-        <label className="block text-sm">
+      <form onSubmit={submit} className="bento mt-7 space-y-3.5 p-6" aria-label="Sign in">
+        <label className="block text-sm font-medium">
           Email
           <input
-            className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2"
+            className="mt-1 w-full rounded-[10px] border border-border-strong bg-surface px-3 py-2"
             type="email"
             autoComplete="username"
             value={email}
@@ -42,10 +43,10 @@ export default function LoginPage() {
             required
           />
         </label>
-        <label className="block text-sm">
+        <label className="block text-sm font-medium">
           Password
           <input
-            className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2"
+            className="mt-1 w-full rounded-[10px] border border-border-strong bg-surface px-3 py-2"
             type="password"
             autoComplete="current-password"
             value={password}
@@ -53,10 +54,10 @@ export default function LoginPage() {
             required
           />
         </label>
-        <label className="block text-sm">
+        <label className="block text-sm font-medium">
           Authenticator code <span className="text-muted">(if enabled)</span>
           <input
-            className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2"
+            className="mt-1 w-full rounded-[10px] border border-border-strong bg-surface px-3 py-2"
             inputMode="numeric"
             autoComplete="one-time-code"
             value={totp}
@@ -70,7 +71,7 @@ export default function LoginPage() {
         )}
         <button
           disabled={busy}
-          className="w-full rounded-md bg-accent px-3 py-2 font-medium text-accent-contrast disabled:opacity-60"
+          className="min-h-10 w-full rounded-[10px] bg-primary px-3 py-2 font-semibold text-primary-contrast disabled:opacity-60"
         >
           {busy ? "Signing in…" : "Sign in"}
         </button>

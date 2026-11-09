@@ -6,12 +6,12 @@ type Size = "sm" | "md";
 
 export function buttonClass(variant: Variant = "secondary", size: Size = "md", extra?: string) {
   return clsx(
-    "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-    size === "sm" ? "min-h-8 px-2.5 py-1 text-xs" : "min-h-10 px-3.5 py-2 text-sm",
-    variant === "primary" && "bg-accent text-accent-contrast hover:opacity-90",
-    variant === "secondary" && "border border-border bg-surface text-text hover:bg-surface-2",
+    "inline-flex items-center justify-center gap-1.5 rounded-[10px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+    size === "sm" ? "min-h-8 px-3 py-1 text-xs" : "min-h-10 px-4 py-2 text-sm",
+    variant === "primary" && "bg-primary text-primary-contrast hover:opacity-90",
+    variant === "secondary" && "border border-border-strong bg-surface text-text hover:bg-surface-2",
     variant === "ghost" && "text-muted hover:bg-surface-2 hover:text-text",
-    variant === "danger" && "border border-border bg-surface text-bad hover:bg-surface-2",
+    variant === "danger" && "border border-border-strong bg-surface text-bad hover:bg-surface-2",
     extra,
   );
 }

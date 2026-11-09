@@ -77,7 +77,7 @@ function IdeaView({ idea: i }: { idea: IdeaDetail }) {
         <Badge tone="muted">Lab score {i.lab_score.toFixed(1)}</Badge>
         <Badge tone="muted">{humanize(i.origin)}</Badge>
       </div>
-      <h1 className="mt-2 font-serif text-2xl font-semibold leading-tight md:text-3xl">{i.title}</h1>
+      <h1 className="mt-2 tracking-tight text-2xl font-semibold leading-tight md:text-3xl">{i.title}</h1>
       {i.one_liner && <p className="mt-1 text-muted">{i.one_liner}</p>}
       {i.kill_reason && <p className="mt-2 text-sm text-bad">Killed: {i.kill_reason}</p>}
 
@@ -159,7 +159,7 @@ function IdeaView({ idea: i }: { idea: IdeaDetail }) {
         </div>
         <aside className="min-w-0 space-y-4">
           <Card>
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Scores</h2>
+            <h2 className="label">Scores</h2>
             <RadarChart label="Idea scores" axes={SCORE_KEYS.map((k) => humanize(k))} max={10} series={[{ name: "score", values: scores, color: "var(--accent)" }]} />
             <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
               {SCORE_KEYS.map((k, n) => (
@@ -310,7 +310,7 @@ function BuildLog({ idea: i }: { idea: IdeaDetail }) {
   return (
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">Build log</h2>
+        <h2 className="card-title">Build log</h2>
         {i.logs.length > 0 && (
           <Button size="sm" onClick={() => startPost({ seed_type: "build_log", seed_id: i.id, title: i.title })}>
             <PenLine size={14} aria-hidden /> Draft a post from this log
@@ -338,7 +338,7 @@ function BuildLog({ idea: i }: { idea: IdeaDetail }) {
         <ol className="relative mt-4 space-y-3 border-l border-border pl-4">
           {[...i.logs].reverse().map((lg) => (
             <li key={lg.id} className="relative">
-              <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-accent" aria-hidden />
+              <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-signal glow" aria-hidden />
               <p className="text-xs text-muted">{fmtDateTime(lg.logged_at)}</p>
               <p className="whitespace-pre-wrap text-sm">{lg.text}</p>
             </li>

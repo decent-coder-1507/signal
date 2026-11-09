@@ -26,13 +26,13 @@ export function Toggle({
         onClick={() => onChange(!checked)}
         className={clsx(
           "relative h-6 w-10 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed",
-          checked ? "border-accent bg-accent" : "border-border bg-surface-2",
+          checked ? "border-signal bg-signal" : "border-border-strong bg-surface-2",
         )}
       >
         <span
           className={clsx(
-            "absolute top-[3px] h-4 w-4 rounded-full bg-surface shadow transition-all",
-            checked ? "left-[19px]" : "left-[3px]",
+            "absolute top-[3px] h-4 w-4 rounded-full shadow transition-all",
+            checked ? "left-[19px] bg-[var(--accent-contrast)]" : "left-[3px] bg-white",
           )}
         />
       </button>

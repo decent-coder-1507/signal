@@ -1,66 +1,176 @@
 @import "tailwindcss";
 
-/* Calm, text-first design (§14). Tokens switch with the OS theme or [data-theme]. */
+/*
+ * SIGNAL design system (ADR-025): "Bento intelligence" light + "Midnight pulse" dark.
+ * Theme = OS preference by default; an explicit choice sets [data-theme] on <html> (see app/layout.tsx).
+ * Text tokens are tuned for >= 4.5:1 on their surfaces; --signal is for marks (rings, bars), not body text.
+ */
 :root {
-  --bg: #fbfaf8;
+  --mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --display: var(--font-archivo), var(--font-inter), ui-sans-serif, sans-serif;
+  --dek: var(--font-instrument), Georgia, serif;
+  color-scheme: light;
+  --bg: #eeeff2;
+  --sidebar: #f7f7f9;
+  --sidebar-border: #e3e4e8;
+  --nav-text: #5b6070;
+  --nav-active-bg: #ffffff;
+  --nav-active-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 0 0 1px #e6e7eb;
   --surface: #ffffff;
-  --surface-2: #f3f2ef;
-  --border: #e4e2dd;
-  --text: #1c1b19;
-  --muted: #6b6862;
-  --accent: #b45309;
+  --surface-2: #f1f2f5;
+  --card: #ffffff;
+  --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+  --border: #e6e7eb;
+  --border-strong: #d6d8de;
+  --text: #16181d;
+  --text-2: #4a5060;
+  --muted: #606575;
+  --accent: #13733a;
   --accent-contrast: #ffffff;
-  --good: #15803d;
-  --warn: #b45309;
+  --signal: #16a34a;
+  --signal-glow: 0 0 0 0 transparent;
+  --primary: #16181d;
+  --primary-contrast: #ffffff;
+  --why-bg: #f3f7f4;
+  --why-border: transparent;
+  --why-text: #2d4a36;
+  --hot: #ff5a1f;
+  --good: #13733a;
+  --warn: #a15c07;
   --bad: #b91c1c;
   --info: #1d4ed8;
+  /* inverted tile (one per dashboard) */
+  --invert-bg: #16181d;
+  --invert-text: #f2f3f5;
+  --invert-muted: #9aa0ad;
+  --invert-track: #2a2e36;
+  --invert-mark: #4ade80;
+  --invert-border: transparent;
+  --invert-on-mark: #16181d;
+  /* chips */
+  --chip-bg: #f1f2f5;
+  --chip-text: #3b404c;
+  --chip-border: transparent;
+  --overlay: rgba(22, 24, 29, 0.42);
 }
+
+/* Midnight pulse. Declared twice: OS dark (unless the user chose light) and explicit dark. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121211;
-    --surface: #1a1a18;
-    --surface-2: #22221f;
-    --border: #2f2e2a;
-    --text: #ecebe7;
-    --muted: #a19e96;
-    --accent: #f59e0b;
-    --accent-contrast: #1a1a18;
+    color-scheme: dark;
+    --bg: #07080a;
+    --sidebar: #0c0e11;
+    --sidebar-border: #1a1d22;
+    --nav-text: #868c96;
+    --nav-active-bg: #14171c;
+    --nav-active-shadow: inset 2px 0 0 #c6f432;
+    --surface: #111418;
+    --surface-2: #171a1f;
+    --card: linear-gradient(180deg, #111418, #0d0f12);
+    --card-shadow: none;
+    --border: #1c2026;
+    --border-strong: #2a3038;
+    --text: #e8eaed;
+    --text-2: #a7adb6;
+    --muted: #868c96;
+    --accent: #c6f432;
+    --accent-contrast: #0a0b0d;
+    --signal: #c6f432;
+    --signal-glow: 0 0 12px rgba(198, 244, 50, 0.35);
+    --primary: #c6f432;
+    --primary-contrast: #0a0b0d;
+    --why-bg: rgba(198, 244, 50, 0.05);
+    --why-border: rgba(198, 244, 50, 0.25);
+    --why-text: #dce7b5;
+    --hot: #ff7a45;
     --good: #4ade80;
     --warn: #fbbf24;
     --bad: #f87171;
-    --info: #93c5fd;
+    --info: #7db4ff;
+    --invert-bg: radial-gradient(120% 140% at 0% 0%, rgba(198, 244, 50, 0.1), transparent 60%), #0d0f12;
+    --invert-border: rgba(198, 244, 50, 0.28);
+    --invert-text: #e8eaed;
+    --invert-muted: #9ba1ab;
+    --invert-track: #20252c;
+    --invert-mark: #c6f432;
+    --invert-on-mark: #0a0b0d;
+    --chip-bg: transparent;
+    --chip-text: #b5bbc4;
+    --chip-border: #2a3038;
+    --overlay: rgba(0, 0, 0, 0.6);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121211;
-  --surface: #1a1a18;
-  --surface-2: #22221f;
-  --border: #2f2e2a;
-  --text: #ecebe7;
-  --muted: #a19e96;
-  --accent: #f59e0b;
-  --accent-contrast: #1a1a18;
+  color-scheme: dark;
+  --bg: #07080a;
+  --sidebar: #0c0e11;
+  --sidebar-border: #1a1d22;
+  --nav-text: #868c96;
+  --nav-active-bg: #14171c;
+  --nav-active-shadow: inset 2px 0 0 #c6f432;
+  --surface: #111418;
+  --surface-2: #171a1f;
+  --card: linear-gradient(180deg, #111418, #0d0f12);
+  --card-shadow: none;
+  --border: #1c2026;
+  --border-strong: #2a3038;
+  --text: #e8eaed;
+  --text-2: #a7adb6;
+  --muted: #868c96;
+  --accent: #c6f432;
+  --accent-contrast: #0a0b0d;
+  --signal: #c6f432;
+  --signal-glow: 0 0 12px rgba(198, 244, 50, 0.35);
+  --primary: #c6f432;
+  --primary-contrast: #0a0b0d;
+  --why-bg: rgba(198, 244, 50, 0.05);
+  --why-border: rgba(198, 244, 50, 0.25);
+  --why-text: #dce7b5;
+  --hot: #ff7a45;
   --good: #4ade80;
   --warn: #fbbf24;
   --bad: #f87171;
-  --info: #93c5fd;
+  --info: #7db4ff;
+  --invert-bg: radial-gradient(120% 140% at 0% 0%, rgba(198, 244, 50, 0.1), transparent 60%), #0d0f12;
+  --invert-border: rgba(198, 244, 50, 0.28);
+  --invert-text: #e8eaed;
+  --invert-muted: #9ba1ab;
+  --invert-track: #20252c;
+  --invert-mark: #c6f432;
+  --invert-on-mark: #0a0b0d;
+  --chip-bg: transparent;
+  --chip-text: #b5bbc4;
+  --chip-border: #2a3038;
+  --overlay: rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
   --color-bg: var(--bg);
+  --color-sidebar: var(--sidebar);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-text: var(--text);
+  --color-text-2: var(--text-2);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-contrast: var(--accent-contrast);
+  --color-signal: var(--signal);
+  --color-primary: var(--primary);
+  --color-primary-contrast: var(--primary-contrast);
+  --color-hot: var(--hot);
   --color-good: var(--good);
   --color-warn: var(--warn);
   --color-bad: var(--bad);
   --color-info: var(--info);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-serif-face), Georgia, serif;
+  --font-mono: var(--mono);
+  --font-display: var(--display);
+  --font-dek: var(--dek);
+  --radius-md: 10px;
+  --radius-lg: 18px;
+  --radius-xl: 20px;
 }
 
 html,
@@ -72,11 +182,246 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   line-height: 1.55;
+  font-feature-settings: "cv11", "ss01";
 }
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+::selection {
+  background: color-mix(in srgb, var(--signal) 28%, transparent);
+}
+
+/* ---------- surfaces ---------- */
+@utility bento {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--card-shadow);
+}
+/* The signature inverted tile: near-black in light, lime-lit graphite in dark. */
+@utility bento-invert {
+  background: var(--invert-bg);
+  color: var(--invert-text);
+  border: 1px solid var(--invert-border);
+  border-radius: 18px;
+}
+@utility why-box {
+  background: var(--why-bg);
+  border: 1px solid var(--why-border);
+  color: var(--why-text);
+  border-radius: 12px;
+}
+
+/* ---------- type ---------- */
+/* Metric numerals: mono, tight tracking. */
+@utility num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+/* Components layer so Tailwind utilities on the same element still win. */
+@layer components {
+/* Card / section labels: muted sans in light, tracked mono caps in dark. */
+.label {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--muted);
+}
+:root[data-theme="dark"] .label,
+:root[data-theme="dark"] .card-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .label,
+  :root:not([data-theme="light"]) .card-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--muted);
+}
+
+/* ---------- chips (Badge) ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  border-radius: 7px;
+  border: 1px solid var(--chip-border);
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 16px;
+}
+.chip[data-tone="accent"],
+.chip[data-tone="good"] {
+  background: #e7f6ec;
+  color: #1f7a3d;
+}
+.chip[data-tone="warn"] {
+  background: #fdf1e3;
+  color: #8f4a06;
+}
+.chip[data-tone="bad"] {
+  background: #fdecec;
+  color: #b42318;
+}
+.chip[data-tone="info"] {
+  background: #e8effd;
+  color: #1d4ed8;
+}
+.chip[data-tone="muted"] {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--muted);
+}
+.chip[data-tone="hot"] {
+  background: #fff0e9;
+  color: #b33a0b;
+}
+:root[data-theme="dark"] .chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  border-radius: 6px;
+}
+:root[data-theme="dark"] .chip[data-tone="accent"] {
+  border-color: rgba(198, 244, 50, 0.4);
+  background: rgba(198, 244, 50, 0.07);
+  color: #c6f432;
+}
+:root[data-theme="dark"] .chip[data-tone="good"] {
+  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.07);
+  color: #4ade80;
+}
+:root[data-theme="dark"] .chip[data-tone="warn"] {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.07);
+  color: #fbbf24;
+}
+:root[data-theme="dark"] .chip[data-tone="bad"] {
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.07);
+  color: #f87171;
+}
+:root[data-theme="dark"] .chip[data-tone="info"] {
+  border-color: rgba(125, 180, 255, 0.35);
+  background: rgba(125, 180, 255, 0.07);
+  color: #7db4ff;
+}
+:root[data-theme="dark"] .chip[data-tone="muted"] {
+  color: #868c96;
+}
+:root[data-theme="dark"] .chip[data-tone="hot"] {
+  border-color: rgba(255, 122, 69, 0.4);
+  background: rgba(255, 122, 69, 0.08);
+  color: #ff7a45;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    border-radius: 6px;
+  }
+  :root:not([data-theme="light"]) .chip[data-tone="accent"] {
+    border-color: rgba(198, 244, 50, 0.4);
+    background: rgba(198, 244, 50, 0.07);
+    color: #c6f432;
+  }
+  :root:not([data-theme="light"]) .chip[data-tone="good"] {
+    border-color: rgba(74, 222, 128, 0.35);
+    background: rgba(74, 222, 128, 0.07);
+    color: #4ade80;
+  }
+  :root:not([data-theme="light"]) .chip[data-tone="warn"] {
+    border-color: rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.07);
+    color: #fbbf24;
+  }
+  :root:not([data-theme="light"]) .chip[data-tone="bad"] {
+    border-color: rgba(248, 113, 113, 0.35);
+    background: rgba(248, 113, 113, 0.07);
+    color: #f87171;
+  }
+  :root:not([data-theme="light"]) .chip[data-tone="info"] {
+    border-color: rgba(125, 180, 255, 0.35);
+    background: rgba(125, 180, 255, 0.07);
+    color: #7db4ff;
+  }
+  :root:not([data-theme="light"]) .chip[data-tone="muted"] {
+    color: #868c96;
+  }
+  :root:not([data-theme="light"]) .chip[data-tone="hot"] {
+    border-color: rgba(255, 122, 69, 0.4);
+    background: rgba(255, 122, 69, 0.08);
+    color: #ff7a45;
+  }
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--chip-text);
+}
+}
+
+/* Glowing lime data marks in dark mode (subtle; off when the user prefers reduced motion). */
+.glow {
+  box-shadow: var(--signal-glow);
+}
+svg .glow-mark {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--signal) 45%, transparent));
+}
+:root[data-theme="light"] svg .glow-mark {
+  filter: none;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) svg .glow-mark {
+    filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .glow {
+    box-shadow: none;
+  }
+  svg .glow-mark {
+    filter: none;
+  }
+}
+
+/* ---------- prose & citations ---------- */
 .prose-signal p {
   margin: 0.5rem 0;
 }
@@ -85,9 +430,40 @@ body {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-sup.cite a {
+sup.cite {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+}
+sup.cite a,
+sup.cite span {
   color: var(--accent);
-  font-size: 0.7em;
   text-decoration: none;
   padding: 0 1px;
+}
+sup.cite a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- story header (direction C, story page only) ---------- */
+.story-rank {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(72px, 14vw, 112px);
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+  color: var(--hot);
+}
+.story-headline {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+}
+.story-dek {
+  font-family: var(--dek);
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--text-2);
 }

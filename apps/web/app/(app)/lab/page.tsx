@@ -50,19 +50,19 @@ export default function LabPage() {
             {IDEA_STATUSES.map((s) => {
               const col = ideas.filter((i) => i.status === s);
               return (
-                <section key={s} aria-label={humanize(s)} data-testid={`lab-column-${s}`} className="min-w-0 rounded-lg bg-surface-2 p-2">
-                  <h2 className="mb-2 flex justify-between px-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                    {humanize(s)} <span className="tabular-nums">{col.length}</span>
+                <section key={s} aria-label={humanize(s)} data-testid={`lab-column-${s}`} className="min-w-0 rounded-[18px] border border-border bg-sidebar p-2.5">
+                  <h2 className="mb-2 flex items-center justify-between px-1 font-mono text-[11px] font-medium uppercase tracking-wider text-muted">
+                    {humanize(s)} <span className="chip num">{col.length}</span>
                   </h2>
                   <ul className="space-y-2">
                     {col.map((i) => (
                       <li key={i.id}>
-                        <Link href={`/lab/${i.id}`} data-testid="idea-card" className="block rounded-md border border-border bg-surface p-2 text-sm hover:border-accent">
+                        <Link href={`/lab/${i.id}`} data-testid="idea-card" className="block rounded-xl border border-border bg-surface p-3 text-sm shadow-[var(--card-shadow)] transition-colors hover:border-accent">
                           <span className="flex flex-wrap items-center gap-1">
                             <Badge tone="muted">{humanize(i.type)}</Badge>
-                            <span className="text-xs tabular-nums text-muted">{i.lab_score.toFixed(1)}</span>
+                            <span className="num text-xs font-semibold text-accent">{i.lab_score.toFixed(1)}</span>
                           </span>
-                          <span className="mt-1 block font-medium">{i.title}</span>
+                          <span className="mt-1.5 block font-semibold leading-snug">{i.title}</span>
                           {i.one_liner && <span className="mt-0.5 line-clamp-2 block text-xs text-muted">{i.one_liner}</span>}
                         </Link>
                       </li>

@@ -27,7 +27,7 @@ export function CardsPanel() {
           </p>
         ) : (
           <div className="py-4">
-            <p className="font-serif text-3xl font-semibold tabular-nums">{due.length}</p>
+            <p className="num text-3xl font-semibold">{due.length}</p>
             <p className="text-sm text-muted">cards due</p>
             <Button className="mt-4" variant="primary" onClick={() => setSession(due)}>
               Start review
@@ -102,7 +102,7 @@ function ReviewSession({ cards, onClose }: { cards: GymCard[]; onClose: () => vo
       <div className="flex flex-1 items-center justify-center overflow-y-auto p-4">
         {finished ? (
           <div className="text-center">
-            <p className="font-serif text-2xl font-semibold">{remaining === 0 || remaining == null ? "No cards due" : "Session done"}</p>
+            <p className="tracking-tight text-2xl font-semibold">{remaining === 0 || remaining == null ? "No cards due" : "Session done"}</p>
             <p className="mt-1 text-sm text-muted">
               {s.reviewed} reviewed{remaining ? ` · ${remaining} more due — start again from the Cards tab` : ". Today's cards step is complete."}
             </p>
@@ -116,7 +116,7 @@ function ReviewSession({ cards, onClose }: { cards: GymCard[]; onClose: () => vo
               <Badge tone="muted">{card.type}</Badge>
               {card.durability && <Badge tone="muted">{card.durability}</Badge>}
             </div>
-            <p className="whitespace-pre-wrap text-center font-serif text-2xl leading-snug">{card.front}</p>
+            <p className="whitespace-pre-wrap text-center tracking-tight text-2xl leading-snug">{card.front}</p>
             {s.revealed ? (
               <>
                 <hr className="my-6 border-border" />

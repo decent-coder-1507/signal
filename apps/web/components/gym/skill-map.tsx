@@ -26,7 +26,7 @@ export function SkillMap() {
       <div className="min-w-0 space-y-3">
         {tree.map((d) => (
           <Card key={d.id}>
-            <h2 className="mb-2 font-serif text-lg font-semibold">{d.name}</h2>
+            <h2 className="mb-2 tracking-tight text-lg font-semibold">{d.name}</h2>
             <ul className="space-y-1">
               {d.children.map((c) => (
                 <SkillRow key={c.id} s={c} depth={0} />
@@ -37,7 +37,7 @@ export function SkillMap() {
       </div>
       <aside>
         <Card className="sticky top-4">
-          <h2 className="mb-2 text-sm font-semibold">Current vs target</h2>
+          <h2 className="card-title mb-2">Current vs target</h2>
           <RadarChart
             label="Skill radar by domain"
             axes={domains.map((d) => d.name)}
@@ -96,7 +96,7 @@ function SkillRow({ s, depth }: { s: SkillNode; depth: number }) {
         </span>
         <span className="w-20 shrink-0" aria-hidden>
           <span className="block h-1.5 overflow-hidden rounded-full bg-surface-2">
-            <span className="block h-full rounded-full bg-accent" style={{ width: `${(s.current_level / 5) * 100}%` }} />
+            <span className="glow block h-full rounded-full bg-signal" style={{ width: `${(s.current_level / 5) * 100}%` }} />
           </span>
           {gap > 0 && <span className="block text-right text-[10px] text-muted">gap {gap.toFixed(0)}</span>}
         </span>

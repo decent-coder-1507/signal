@@ -42,7 +42,7 @@ export function SeriesTab() {
         {(q.data ?? []).length === 0 && <p className="text-sm text-muted">No series yet — e.g. “Friday AI-engineering lesson”.</p>}
         <ul className="space-y-2">
           {(q.data ?? []).map((s) => (
-            <li key={s.id} className="rounded-lg border border-border bg-surface p-3">
+            <li key={s.id} className="bento p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-medium">{s.name}</p>

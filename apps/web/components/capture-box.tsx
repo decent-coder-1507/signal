@@ -65,7 +65,7 @@ export function CaptureBox({ initial = "", initialTitle = "" }: { initial?: stri
           id="capture-intent"
           value={intent}
           onChange={(e) => setIntent(e.target.value)}
-          className="min-h-10 rounded-md border border-border bg-surface px-2 text-sm"
+          className="min-h-10 rounded-[10px] border border-border-strong bg-surface px-2 text-sm"
         >
           {INTENTS.map((i) => (
             <option key={i.id} value={i.id}>

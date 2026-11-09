@@ -59,7 +59,7 @@ export function RawTab() {
         {(q.data ?? []).length === 0 && <p className="text-sm text-muted">Nothing here yet.</p>}
         <ul className="space-y-2" aria-label="Raw materials">
           {(q.data ?? []).map((r) => (
-            <li key={r.id} data-testid="raw-material" className="rounded-lg border border-border bg-surface p-3">
+            <li key={r.id} data-testid="raw-material" className="bento p-3">
               <div className="flex items-start justify-between gap-2">
                 <p className="min-w-0 whitespace-pre-wrap break-words text-sm">{r.text}</p>
                 <div className="flex shrink-0">

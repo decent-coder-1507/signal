@@ -40,7 +40,7 @@ export function FlagsTab() {
     <div className="grid gap-4 md:grid-cols-2">
       {Object.entries(grouped).map(([g, items]) => (
         <Card key={g}>
-          <h2 className="mb-2 text-sm font-semibold">{GROUPS[g] ?? g}</h2>
+          <h2 className="card-title mb-2">{GROUPS[g] ?? g}</h2>
           <ul className="space-y-2">
             {items.map(([k, v]) => (
               <li key={k} className="flex items-center justify-between gap-2">

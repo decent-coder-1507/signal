@@ -64,9 +64,9 @@ export function NotificationBell({ className }: { className?: string }) {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface p-3 shadow-xl md:left-0 md:right-auto">
+        <div className="absolute right-0 z-50 mt-1 w-80 max-w-[calc(100vw-2rem)] bento p-3 shadow-xl md:left-0 md:right-auto">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Notifications</h2>
+            <h2 className="card-title">Notifications</h2>
             {unread > 0 && (
               <button type="button" className="text-xs underline" onClick={() => readAll.mutate()}>
                 Mark all read

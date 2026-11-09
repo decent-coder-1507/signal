@@ -60,7 +60,7 @@ export function CalendarTab() {
       </div>
 
       <Card>
-        <h2 className="mb-2 text-sm font-semibold">Weekly goals</h2>
+        <h2 className="card-title mb-2">Weekly goals</h2>
         <ul className="grid gap-3 sm:grid-cols-3">
           {Object.entries(c.goals).map(([p, g]) => (
             <li key={p}>
@@ -71,14 +71,14 @@ export function CalendarTab() {
                 </span>
               </div>
               <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuemin={0} aria-valuemax={g.goal} aria-valuenow={g.done} aria-label={`${p} goal`}>
-                <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, (g.done / Math.max(1, g.goal)) * 100)}%` }} />
+                <div className="glow h-full rounded-full bg-signal" style={{ width: `${Math.min(100, (g.done / Math.max(1, g.goal)) * 100)}%` }} />
               </div>
             </li>
           ))}
         </ul>
       </Card>
 
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="bento overflow-x-auto">
         <table className="w-full min-w-[760px] table-fixed text-xs">
           <thead className="bg-surface-2 text-muted">
             <tr>
@@ -125,7 +125,7 @@ export function CalendarTab() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <h2 className="mb-2 text-sm font-semibold">Series slots</h2>
+          <h2 className="card-title mb-2">Series slots</h2>
           {c.series.length === 0 ? (
             <p className="text-sm text-muted">No series yet.</p>
           ) : (
@@ -143,7 +143,7 @@ export function CalendarTab() {
           )}
         </Card>
         <Card>
-          <h2 className="mb-2 text-sm font-semibold">Evergreen bank</h2>
+          <h2 className="card-title mb-2">Evergreen bank</h2>
           {c.evergreen.length === 0 ? (
             <p className="text-sm text-muted">Ready posts saved as evergreen fill quiet days.</p>
           ) : (

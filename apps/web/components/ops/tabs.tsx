@@ -25,35 +25,59 @@ type Health = {
 export function HealthTab() {
   const health = useQuery({ queryKey: ["health"], queryFn: () => get<Health>("/health"), refetchInterval: 30_000 });
   const h = health.data;
+  const fmt = (v: unknown) => (typeof v === "object" ? JSON.stringify(v) : String(v));
   return (
-    <section className="rounded-lg border border-border bg-surface p-4" aria-label="System health">
-      <h2 className="text-sm font-medium">System health</h2>
+    <section aria-label="System health">
+      <h2 className="sr-only">System health</h2>
       {h ? (
-        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
-          <dt className="text-muted">Status</dt>
-          <dd data-testid="health-status" className={h.status === "ok" ? "text-good" : "text-warn"}>
-            {h.status}
-          </dd>
-          <dt className="text-muted">Mode</dt>
-          <dd>{h.mode}</dd>
+        <dl className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
+          <div className="bento-invert p-5">
+            <dt className="text-[12.5px] font-medium text-[var(--invert-muted)]">Status</dt>
+            <dd className="mt-1.5 flex items-center gap-2">
+              <span
+                className={clsx("glow h-2.5 w-2.5 rounded-full", h.status === "ok" ? "bg-[var(--invert-mark)]" : "bg-warn")}
+                aria-hidden
+              />
+              <span data-testid="health-status" className="num text-[28px] font-semibold leading-none">
+                {h.status}
+              </span>
+            </dd>
+          </div>
+          <div className="bento p-5">
+            <dt className="label">Mode</dt>
+            <dd className="num mt-1.5 text-[28px] font-semibold leading-none">{h.mode}</dd>
+          </div>
+          <div className="bento col-span-2 p-5">
+            <dt className="label">LLM provider</dt>
+            <dd className="mt-1.5 flex flex-wrap items-center gap-2">
+              <span className="num text-xl font-semibold">{h.checks.llm.provider}</span>
+              {h.checks.llm.healthy === false ? (
+                <Badge tone="bad">unavailable</Badge>
+              ) : h.checks.llm.healthy ? (
+                <Badge tone="good">healthy</Badge>
+              ) : null}
+            </dd>
+          </div>
           {Object.entries(h.checks)
             .filter(([k]) => k !== "llm")
             .map(([k, v]) => (
-              <div key={k} className="contents">
-                <dt className="text-muted">{k}</dt>
-                <dd>{typeof v === "object" ? JSON.stringify(v) : String(v)}</dd>
+              <div key={k} className="bento min-w-0 p-5">
+                <dt className="label">{k}</dt>
+                <dd
+                  className={clsx(
+                    "mt-1.5 break-words font-mono text-sm",
+                    v === true || v === "ok" ? "text-good" : v === false ? "text-bad" : "text-text",
+                  )}
+                >
+                  {fmt(v)}
+                </dd>
               </div>
             ))}
-          <dt className="text-muted">LLM provider</dt>
-          <dd>
-            {h.checks.llm.provider}
-            {h.checks.llm.healthy === false && <span className="ml-1 text-bad">(unavailable)</span>}
-          </dd>
         </dl>
       ) : (
-        <p className="mt-2 text-sm text-muted">Checking…</p>
+        <p className="bento p-5 text-sm text-muted">Checking…</p>
       )}
-      {h?.checks.llm.last_error && <p className="mt-2 text-sm text-bad">{h.checks.llm.last_error}</p>}
+      {h?.checks.llm.last_error && <p className="mt-3 rounded-xl border border-bad/40 bg-bad/10 px-4 py-2.5 text-sm text-bad">{h.checks.llm.last_error}</p>}
     </section>
   );
 }
@@ -80,7 +104,7 @@ export function RunsTab() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <select aria-label="Routine" value={chosen} onChange={(e) => setRoutine(e.target.value)} className="min-h-8 rounded-md border border-border bg-surface px-2 text-sm">
+        <select aria-label="Routine" value={chosen} onChange={(e) => setRoutine(e.target.value)} className="min-h-8 rounded-[10px] border border-border-strong bg-surface px-2.5 text-sm">
           {(routines.data ?? []).map((r) => (
             <option key={r.id} value={r.id}>
               {r.name}
@@ -91,9 +115,9 @@ export function RunsTab() {
           <Play size={14} aria-hidden /> {runNow.isPending ? "Running…" : "Run now"}
         </Button>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="bento overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
-          <thead className="bg-surface-2 text-left text-xs text-muted">
+          <thead className="text-left font-mono text-[11px] uppercase tracking-wider text-muted">
             <tr>
               <th className="px-3 py-2 font-medium">Run</th>
               <th className="px-3 py-2 font-medium">Status</th>
@@ -161,15 +185,15 @@ export function LedgerTab() {
   const tasks = Array.from(new Set(rows.map((r) => r.task))).sort();
   return (
     <div className="space-y-3">
-      <select aria-label="Filter by task" value={task} onChange={(e) => setTask(e.target.value)} className="min-h-8 rounded-md border border-border bg-surface px-2 text-sm">
+      <select aria-label="Filter by task" value={task} onChange={(e) => setTask(e.target.value)} className="min-h-8 rounded-[10px] border border-border-strong bg-surface px-2.5 text-sm">
         <option value="">All tasks</option>
         {tasks.map((t) => (
           <option key={t}>{t}</option>
         ))}
       </select>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="bento overflow-x-auto">
         <table className="w-full min-w-[860px] text-xs" data-testid="ledger">
-          <thead className="bg-surface-2 text-left text-muted">
+          <thead className="text-left font-mono text-[10.5px] uppercase tracking-wider text-muted">
             <tr>
               {["When", "Task", "Tier", "Model", "Status", "Tokens in/out", "Latency", "Cost", "Cache"].map((h) => (
                 <th key={h} className="px-2 py-1.5 font-medium">
@@ -226,14 +250,40 @@ export function CostsTab() {
   const soft = c.soft_limit ?? c.limit * 0.8;
   const pctOf = (v: number) => `${Math.min(100, (v / Math.max(c.limit, 1e-9)) * 100)}%`;
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
+      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+        <Card invert className="col-span-2 flex flex-col justify-between">
+          <dl>
+            <dt className="text-[12.5px] font-medium text-[var(--invert-muted)]">LLM spend · month</dt>
+            <dd className="num mt-1.5 text-[40px] font-semibold leading-none">
+              {usd(c.month_spent)}
+              <span className="ml-1.5 font-sans text-sm font-normal tracking-normal text-[var(--invert-muted)]">of {usd(c.limit, 0)}</span>
+            </dd>
+          </dl>
+        </Card>
+        <Card>
+          <dl>
+            <dt className="label">Projected</dt>
+            <dd className="num mt-1.5 text-[28px] font-semibold leading-none">{usd(c.projected)}</dd>
+          </dl>
+        </Card>
+        <Card>
+          <dl>
+            <dt className="label">Calls today</dt>
+            <dd className="num mt-1.5 text-[28px] font-semibold leading-none">
+              {c.calls_today ?? "—"}
+              {c.max_calls_per_day ? <span className="ml-1 font-sans text-sm font-normal tracking-normal text-muted">/ {c.max_calls_per_day}</span> : null}
+            </dd>
+          </dl>
+        </Card>
+      </div>
       <Card data-testid="budget">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-semibold">Budget this month</h2>
+          <h2 className="card-title">Budget this month</h2>
           <Badge tone={c.state === "ok" ? "good" : c.state === "soft" ? "warn" : "bad"}>{c.state}</Badge>
         </div>
-        <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">
-          {usd(c.month_spent)} <span className="text-sm font-normal text-muted">of {usd(c.limit, 0)} · projected {usd(c.projected)}</span>
+        <p className="mt-1 num text-2xl font-semibold">
+          {usd(c.month_spent)} <span className="font-sans text-sm font-normal tracking-normal text-muted">of {usd(c.limit, 0)} · projected {usd(c.projected)}</span>
         </p>
         <div
           className="relative mt-3 h-3 rounded-full bg-surface-2"
@@ -244,7 +294,7 @@ export function CostsTab() {
           aria-valuenow={c.month_spent}
           data-testid="budget-bar"
         >
-          <div className={clsx("h-full rounded-full", c.state === "hard" ? "bg-bad" : c.state === "soft" ? "bg-warn" : "bg-accent")} style={{ width: pctOf(c.month_spent) }} />
+          <div className={clsx("h-full rounded-full", c.state === "hard" ? "bg-bad" : c.state === "soft" ? "bg-warn" : "glow bg-signal")} style={{ width: pctOf(c.month_spent) }} />
           <div className="absolute inset-y-[-3px] w-px border-l border-dashed border-text/60" style={{ left: pctOf(c.projected) }} title={`projected ${usd(c.projected)}`} />
           <div className="absolute inset-y-[-4px] w-0.5 bg-warn" style={{ left: pctOf(soft) }} title={`soft limit ${usd(soft)}`} />
           <div className="absolute inset-y-[-4px] right-0 w-0.5 bg-bad" title={`hard limit ${usd(c.limit)}`} />
@@ -257,10 +307,10 @@ export function CostsTab() {
         {c.note && <p className="mt-1 text-xs text-muted">{c.note}</p>}
       </Card>
       <Card>
-        <h2 className="mb-2 text-sm font-semibold">By day</h2>
+        <h2 className="card-title mb-2">By day</h2>
         <BarChart label="Cost by day" bars={c.by_day.map((d) => ({ x: d.date, y: d.cost }))} format={(v) => `$${v.toFixed(2)}`} />
       </Card>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3.5 md:grid-cols-3">
         <CostTable title="By task" rows={c.by_task.map((r) => [r.task, r.cost, r.calls])} />
         <CostTable title="By tier" rows={c.by_tier.map((r) => [r.tier, r.cost, r.calls])} />
         <CostTable title="By routine" rows={c.by_routine.map((r) => [r.routine, r.cost, null])} />
@@ -272,7 +322,7 @@ export function CostsTab() {
 function CostTable({ title, rows }: { title: string; rows: [string, number, number | null][] }) {
   return (
     <Card>
-      <h2 className="mb-2 text-sm font-semibold">{title}</h2>
+      <h2 className="card-title mb-2">{title}</h2>
       {rows.length === 0 ? (
         <p className="text-sm text-muted">—</p>
       ) : (
@@ -384,9 +434,9 @@ export function SourceHealthTab() {
   });
   const rows = [...(q.data ?? [])].sort((a, b) => Number(!!b.health?.flagged) - Number(!!a.health?.flagged) || (b.health?.consecutive_failures ?? 0) - (a.health?.consecutive_failures ?? 0));
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="bento overflow-x-auto">
       <table className="w-full min-w-[700px] text-sm">
-        <thead className="bg-surface-2 text-left text-xs text-muted">
+        <thead className="text-left font-mono text-[11px] uppercase tracking-wider text-muted">
           <tr>
             <th className="px-3 py-2 font-medium">Source</th>
             <th className="px-3 py-2 font-medium">Health</th>
@@ -446,7 +496,7 @@ export function DeadLettersTab() {
   return (
     <ul className="space-y-2">
       {rows.map((j) => (
-        <li key={j.id} className="rounded-lg border border-border bg-surface p-3 text-sm">
+        <li key={j.id} className="bento p-3 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="font-mono">{j.name}</span>
             <span className="text-xs text-muted">

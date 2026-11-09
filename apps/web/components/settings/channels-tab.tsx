@@ -140,7 +140,7 @@ function ChannelsForm({ s }: { s: ChannelSettings }) {
       </Card>
 
       <Card className="md:col-span-2">
-        <h2 className="mb-2 text-sm font-semibold">Hashnode</h2>
+        <h2 className="card-title mb-2">Hashnode</h2>
         <form
           className="flex flex-wrap items-end gap-2"
           onSubmit={(e) => {

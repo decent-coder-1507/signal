@@ -131,16 +131,16 @@ function BriefView({ brief }: { brief: Brief }) {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageTitle sub={fmtDateTime(brief.created_at)}>
+      <PageTitle eyebrow={<span className="font-mono">{fmtDateTime(brief.created_at)}</span>}>
         <span data-testid="brief-kind">{kindLabel}</span>
       </PageTitle>
       {c.topline && (
-        <p className="-mt-2 mb-5 font-serif text-lg leading-snug" data-testid="brief-topline">
+        <p className="-mt-3 mb-6 text-[17px] leading-snug text-text-2" data-testid="brief-topline">
           {c.topline}
         </p>
       )}
       {c.degraded && (
-        <p className="mb-4 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
+        <p className="mb-4 rounded-xl border border-warn/40 bg-warn/10 px-4 py-2.5 text-sm">
           Some analysis was unavailable; parts of this brief are ranked by deterministic scores only.
         </p>
       )}
@@ -154,8 +154,8 @@ function BriefView({ brief }: { brief: Brief }) {
               aria-pressed={ring === r}
               onClick={() => pickRing(r)}
               className={clsx(
-                "min-h-8 rounded-full border px-3 text-xs",
-                ring === r ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:text-text",
+                "min-h-8 rounded-full border px-3.5 text-xs font-medium transition-colors",
+                ring === r ? "border-primary bg-primary text-primary-contrast" : "border-border-strong bg-surface text-muted hover:text-text",
               )}
             >
               {r === "all" ? `All (${c.stories.length})` : `${RING[r] ?? r} (${c.stories.filter((s) => s.ring === r).length})`}
@@ -170,13 +170,13 @@ function BriefView({ brief }: { brief: Brief }) {
             <div
               role="dialog"
               aria-label="Keyboard shortcuts"
-              className="absolute right-0 z-30 mt-1 w-64 rounded-md border border-border bg-surface p-3 text-sm shadow-lg"
+              className="absolute right-0 z-30 mt-1 w-64 rounded-xl border border-border bg-surface p-3.5 text-sm shadow-lg"
             >
-              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
                 {SHORTCUTS.map((s) => (
                   <div key={s.keys} className="contents">
                     <dt>
-                      <kbd className="rounded border border-border bg-surface-2 px-1 font-mono text-xs">{s.keys}</kbd>
+                      <kbd>{s.keys}</kbd>
                     </dt>
                     <dd className="text-muted">{s.label}</dd>
                   </div>
@@ -198,11 +198,12 @@ function BriefView({ brief }: { brief: Brief }) {
         </Card>
       )}
 
-      <ol className="space-y-3" aria-label="Top stories">
+      <ol className="space-y-3.5" aria-label="Top stories">
         {stories.map((s, i) => (
           <li key={s.story_id}>
             <StoryCardView
               story={s}
+              rank={c.stories.indexOf(s) + 1}
               focused={nav.index === i}
               marked={marked[s.story_id]}
               onFocus={() => dispatch({ type: "set", index: i })}
@@ -215,8 +216,9 @@ function BriefView({ brief }: { brief: Brief }) {
         ))}
       </ol>
 
+      <div className="mt-5 grid gap-3.5 sm:grid-cols-2">
       {c.post_suggestion && (
-        <Card className="mt-5">
+        <Card>
           <CardTitle aside={c.post_suggestion.platform ?? undefined}>Post suggestion</CardTitle>
           <p className="text-sm">{c.post_suggestion.label}</p>
           {c.post_suggestion.angle && <p className="mt-1 text-sm text-muted">Angle: {c.post_suggestion.angle}</p>}
@@ -226,14 +228,14 @@ function BriefView({ brief }: { brief: Brief }) {
         </Card>
       )}
       {c.build_spark && (
-        <Card className="mt-3">
+        <Card>
           <CardTitle aside={c.build_spark.type}>Build spark</CardTitle>
-          <p className="text-sm font-medium">{c.build_spark.title}</p>
+          <p className="text-[15px] font-semibold leading-snug">{c.build_spark.title}</p>
           <p className="text-sm text-muted">{c.build_spark.one_liner}</p>
         </Card>
       )}
       {c.learn && (
-        <Card className="mt-3">
+        <Card>
           <CardTitle>Learn</CardTitle>
           <p className="text-sm">{c.learn.label ?? c.learn.skill}</p>
           <div className="mt-1 flex flex-wrap gap-3 text-xs">
@@ -251,7 +253,7 @@ function BriefView({ brief }: { brief: Brief }) {
       )}
 
       {c.watches.length > 0 && (
-        <Card className="mt-3">
+        <Card>
           <CardTitle>Watches triggered</CardTitle>
           <ul className="space-y-2 text-sm">
             {c.watches.map((w, i) => (
@@ -266,10 +268,11 @@ function BriefView({ brief }: { brief: Brief }) {
           </ul>
         </Card>
       )}
+      </div>
 
       {c.quick_hits.length > 0 && (
-        <details className="group mt-3 rounded-lg border border-border bg-surface p-4">
-          <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
+        <details className="group mt-3.5 bento p-5">
+          <summary className="card-title flex cursor-pointer list-none items-center justify-between">
             Quick hits ({c.quick_hits.length})
             <ChevronDown size={16} className="transition-transform group-open:rotate-180" aria-hidden />
           </summary>
@@ -279,24 +282,31 @@ function BriefView({ brief }: { brief: Brief }) {
                 <Link href={`/stories/${q.story_id}`} className="font-medium hover:underline">
                   {q.title}
                 </Link>
-                <span className="ml-1 text-xs text-muted">· {RING[q.ring] ?? q.ring}</span>
+                <span className="ml-1.5 text-xs text-muted">· {RING[q.ring] ?? q.ring}</span>
               </li>
             ))}
           </ul>
         </details>
       )}
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-2 p-4">
-        <p className="text-sm text-muted">
+      <div className="bento-invert mt-5 flex flex-wrap items-center justify-between gap-3 p-5">
+        <p className="text-sm text-[var(--invert-muted)]">
           {c.cards_due > 0 ? `${c.cards_due} cards due today.` : "No cards due."}{" "}
           {brief.completed_at ? "Brief marked done." : "Triaged everything you need?"}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="ghost" disabled={generate.isPending} onClick={() => generate.mutate()}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-[var(--invert-muted)] hover:bg-white/10 hover:text-[var(--invert-text)]"
+            disabled={generate.isPending}
+            onClick={() => generate.mutate()}
+          >
             <RefreshCw size={14} aria-hidden /> {generate.isPending ? "Generating…" : "Regenerate"}
           </Button>
           <Button
             variant="primary"
+            className="bg-[var(--invert-mark)] text-[var(--invert-on-mark)]"
             disabled={complete.isPending || !!brief.completed_at}
             onClick={() => complete.mutate({ id: brief.id, minimum: false })}
           >
@@ -308,8 +318,17 @@ function BriefView({ brief }: { brief: Brief }) {
   );
 }
 
+const HINTS: [string, string][] = [
+  ["u", "useful"],
+  ["p", "post"],
+  ["b", "build"],
+  ["l", "learn"],
+  ["x", "skip"],
+];
+
 function StoryCardView({
   story: s,
+  rank,
   focused,
   marked,
   onFocus,
@@ -317,6 +336,7 @@ function StoryCardView({
   cardRef,
 }: {
   story: BriefStory;
+  rank: number;
   focused: boolean;
   marked?: FeedbackKind;
   onFocus: () => void;
@@ -333,25 +353,33 @@ function StoryCardView({
       aria-current={focused || undefined}
       onFocus={onFocus}
       className={clsx(
-        "rounded-lg border bg-surface p-4 outline-none transition-shadow",
-        focused ? "border-accent shadow-[0_0_0_1px_var(--accent)]" : "border-border",
+        "bento p-5 outline-none transition-shadow md:p-6",
+        focused && "border-accent! shadow-[0_0_0_1px_var(--accent),var(--signal-glow)]",
         marked === "not_for_me" && "opacity-60",
       )}
     >
-      <StoryBadges
-        ring={s.ring}
-        update={s.update}
-        hype={s.hype_verdict}
-        durability={s.durability}
-        exploration={s.exploration}
-        degraded={s.degraded}
-      />
-      <h2 className="mt-2 font-serif text-lg font-semibold leading-snug">
+      <div className="flex items-center gap-2.5">
+        <span className="num shrink-0 text-xs font-semibold text-muted" aria-label={`Rank ${rank}`}>
+          {String(rank).padStart(2, "0")}
+        </span>
+        <div className="min-w-0 flex-1">
+          <StoryBadges
+            ring={s.ring}
+            update={s.update}
+            hype={s.hype_verdict}
+            durability={s.durability}
+            exploration={s.exploration}
+            degraded={s.degraded}
+          />
+        </div>
+        {idx.size > 0 && <span className="hidden shrink-0 font-mono text-[11px] text-muted sm:inline">{idx.size} src</span>}
+      </div>
+      <h2 className="mt-3 text-[19px] font-semibold leading-snug tracking-[-0.015em]">
         <Link href={`/stories/${s.story_id}`} className="hover:underline">
           {s.title}
         </Link>
       </h2>
-      <p className="mt-1 text-sm">
+      <p className="mt-1.5 text-[14.5px] leading-relaxed text-text-2">
         <CitedText text={s.one_line} index={idx} />
       </p>
       {s.update && s.what_changed && (
@@ -361,8 +389,8 @@ function StoryCardView({
         </p>
       )}
       {s.why_you && (
-        <div className="mt-3 border-l-2 border-accent/60 pl-3 text-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Why it matters to you</p>
+        <div className="why-box mt-3.5 px-3.5 py-3 text-[13.5px] leading-relaxed">
+          <p className="font-semibold">Why it matters to you</p>
           <p className="mt-0.5">
             <CitedText text={s.why_you} index={idx} />
           </p>
@@ -377,7 +405,7 @@ function StoryCardView({
           ))}
         </div>
       )}
-      <div className="mt-3">
+      <div className="mt-4">
         <StoryActionBar
           id={s.story_id}
           title={s.title}
@@ -393,6 +421,17 @@ function StoryCardView({
             </Button>
           }
         />
+        <p className="mt-3 hidden flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted md:flex" aria-hidden>
+          <span className="inline-flex items-center gap-1">
+            <kbd>j</kbd>
+            <kbd>k</kbd> move
+          </span>
+          {HINTS.map(([k, l]) => (
+            <span key={k} className="inline-flex items-center gap-1">
+              <kbd>{k}</kbd> {l}
+            </span>
+          ))}
+        </p>
         {marked && (
           <p className="mt-1.5 text-xs text-muted" data-testid="feedback-state">
             {marked === "useful" ? "Marked useful" : marked === "not_for_me" ? "Skipped" : `Marked: ${marked}`}

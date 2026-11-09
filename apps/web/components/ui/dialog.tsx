@@ -38,7 +38,7 @@ export function Dialog({
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-[var(--overlay)] p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
       <div
         ref={ref}
         role="dialog"
@@ -46,13 +46,13 @@ export function Dialog({
         aria-labelledby={id}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
-        className={`max-h-[92dvh] w-full overflow-y-auto rounded-t-xl border border-border bg-surface p-4 shadow-xl sm:rounded-xl ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"}`}
+        className={`max-h-[92dvh] w-full overflow-y-auto rounded-t-[20px] border border-border bg-surface p-5 shadow-2xl sm:rounded-[20px] ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"}`}
       >
         <div className="mb-3 flex items-start justify-between gap-2">
-          <h2 id={id} className="font-serif text-lg font-semibold">
+          <h2 id={id} className="text-lg font-semibold tracking-tight">
             {title}
           </h2>
-          <button type="button" data-close aria-label="Close" onClick={onClose} className="rounded p-1 text-muted hover:text-text">
+          <button type="button" data-close aria-label="Close" onClick={onClose} className="rounded-md p-1 text-muted hover:bg-surface-2 hover:text-text">
             <X size={18} aria-hidden />
           </button>
         </div>

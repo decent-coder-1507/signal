@@ -38,7 +38,7 @@ function TopicsForm({ p }: { p: Profile }) {
     <div className="space-y-4">
       {RINGS.map((r) => (
         <Card key={r}>
-          <h2 className="mb-2 text-sm font-semibold">{RING[r]}</h2>
+          <h2 className="card-title mb-2">{RING[r]}</h2>
           {topics[r].length === 0 && <p className="text-sm text-muted">No topics.</p>}
           <ul className="space-y-3">
             {topics[r].map((t, i) => (
@@ -100,7 +100,7 @@ function TopicsForm({ p }: { p: Profile }) {
             aria-label="Ring for new topic"
             value={newRing}
             onChange={(e) => setNewRing(e.target.value as R)}
-            className="min-h-10 rounded-md border border-border bg-surface px-2 text-sm"
+            className="min-h-10 rounded-[10px] border border-border-strong bg-surface px-2 text-sm"
           >
             {RINGS.map((x) => (
               <option key={x} value={x}>

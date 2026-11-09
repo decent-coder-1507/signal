@@ -79,7 +79,7 @@ function SavedTab() {
   return (
     <ul className="space-y-2">
       {rows.map((r) => (
-        <li key={r.id} className="rounded-lg border border-border bg-surface p-3">
+        <li key={r.id} className="bento p-3">
           {safeUrl(r.url) ? (
             <a href={safeUrl(r.url)} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">
               {r.title}
@@ -153,7 +153,7 @@ function NotesTab() {
         ) : (
           <ul className="space-y-2" aria-label="Notes">
             {notes.map((n) => (
-              <li key={n.id} className="rounded-lg border border-border bg-surface p-3">
+              <li key={n.id} className="bento p-3">
                 <div className="flex items-start justify-between gap-2">
                   <p className={`min-w-0 whitespace-pre-wrap break-words text-sm ${n.kind === "highlight" ? "border-l-2 border-accent pl-2" : ""}`}>{n.text}</p>
                   <Button size="sm" variant="ghost" aria-label="Delete note" onClick={() => remove.mutate(n.id)}>

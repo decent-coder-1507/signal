@@ -93,7 +93,7 @@ export function ExplainerPanel({
       {gen.error && <p role="alert" className="text-sm text-bad">{errMsg(gen.error)}</p>}
       {ex && (
         <Card data-testid="explainer">
-          <h2 className="font-serif text-xl font-semibold">{ex.topic}</h2>
+          <h2 className="tracking-tight text-xl font-semibold">{ex.topic}</h2>
           <p className="mb-3 text-xs text-muted">{ex.depth} depth</p>
           <Markdown source={numberCitations(ex.body, index)} />
           {index.size > 0 && (

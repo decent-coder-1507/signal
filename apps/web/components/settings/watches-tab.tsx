@@ -60,7 +60,7 @@ export function WatchesTab() {
   return (
     <div className="space-y-4">
       <Card>
-        <h2 className="mb-1 text-sm font-semibold">New watch</h2>
+        <h2 className="card-title mb-1">New watch</h2>
         <p className="mb-3 text-sm text-muted">
           Describe what you want to hear about in plain words, e.g. “any new MCP spec version”.
         </p>
@@ -93,7 +93,7 @@ export function WatchesTab() {
       </Card>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Your watches</h2>
+        <h2 className="card-title">Your watches</h2>
         <Button size="sm" variant="ghost" disabled={check.isPending} onClick={() => check.mutate()}>
           <Search size={14} aria-hidden /> Check now
         </Button>
@@ -101,7 +101,7 @@ export function WatchesTab() {
       {(q.data ?? []).length === 0 && <p className="text-sm text-muted">No watches yet.</p>}
       <ul className="space-y-2" aria-label="Watches">
         {(q.data ?? []).map((w) => (
-          <li key={w.id} data-testid="watch" className="rounded-lg border border-border bg-surface p-3">
+          <li key={w.id} data-testid="watch" className="bento p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="break-words text-sm font-medium">{w.query}</p>
