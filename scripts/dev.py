@@ -59,7 +59,7 @@ def docker(*args: str) -> int:
             "wsl",
             "-d",
             os.environ.get("SIGNAL_WSL_DISTRO", "Alpine"),
-            "--",
+            "--exec",
             "sh",
             "-c",
             f'cd "{wsl_root}" && docker {quoted}',
@@ -79,6 +79,7 @@ def cmd_setup() -> None:
 
 
 def ensure_wsl_docker() -> None:
+    # `--exec` passes argv straight through; `wsl -- sh -c X` re-parses X in a shell and mangles quotes/$vars.
     """The Alpine WSL distro isn't booted by OpenRC, so dockerd doesn't auto-start after a reboot (RUNBOOK)."""
     if shutil.which("docker"):
         return
@@ -88,7 +89,7 @@ def ensure_wsl_docker() -> None:
         "setsid nohup dockerd > /var/log/dockerd-manual.log 2>&1 < /dev/null & }; "
         "i=0; while [ $i -lt 40 ]; do docker info >/dev/null 2>&1 && exit 0; sleep 2; i=$((i+1)); done; exit 1"
     )
-    rc = subprocess.call(["wsl", "-d", distro, "-u", "root", "--", "sh", "-c", script])
+    rc = subprocess.call(["wsl", "-d", distro, "-u", "root", "--exec", "sh", "-c", script])
     if rc != 0:
         sys.exit("Docker daemon in WSL did not start; see /var/log/dockerd-manual.log inside the distro")
 
@@ -127,7 +128,7 @@ def cmd_linux(args: list[str]) -> None:
         wsl_root = f"/mnt/{drive.lower()}{rest.replace(chr(92), '/')}"
         distro = os.environ.get("SIGNAL_WSL_DISTRO", "Alpine")
         ensure_wsl_docker()
-        sys.exit(subprocess.call(["wsl", "-d", distro, "--", "sh", "-c", f"cd '{wsl_root}' && {inner}"]))
+        sys.exit(subprocess.call(["wsl", "-d", distro, "--exec", "sh", "-c", f"cd '{wsl_root}' && {inner}"]))
     sys.exit(subprocess.call(["sh", "-c", inner], cwd=ROOT))
 
 
