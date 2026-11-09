@@ -2,3 +2,6 @@
 *.png binary
 *.pdf binary
 *.zip binary
+*.sh text eol=lf
+Dockerfile* text eol=lf
+*.Dockerfile text eol=lf

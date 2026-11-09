@@ -47,13 +47,35 @@ services:
     environment: {SIGNAL_API_URL: "http://api:8710"}
     ports: ["3710:3710"]
     depends_on: [api]
+  toolbox:
+    # Linux dev/test toolbox (ADR-024): `python scripts/dev.py linux <cmd>`
+    profiles: [dev]
+    build: {context: ., dockerfile: deploy/toolbox.Dockerfile, network: host}
+    network_mode: host
+    volumes:
+      - .:/workspace
+      - toolbox_venv:/venv
+      - toolbox_node_modules:/workspace/node_modules
+      - toolbox_web_node_modules:/workspace/apps/web/node_modules
+      - toolbox_next:/workspace/apps/web/.next
+      - toolbox_browsers:/ms-playwright
+      - toolbox_cache:/root/.cache
+      - toolbox_pnpm:/root/.local/share/pnpm
   caddy:
     profiles: [vps]
     image: caddy:2-alpine
     ports: ["80:80", "443:443"]
     environment: {SIGNAL_DOMAIN: "${SIGNAL_DOMAIN:-localhost}"}
     volumes: ["./deploy/Caddyfile:/etc/caddy/Caddyfile:ro", "signal_caddy:/data"]
-volumes: {signal_pg: {}, signal_redis: {}, signal_caddy: {}, claude_home: {}}
+volumes: {signal_pg: {}, signal_redis: {}, signal_caddy: {}, claude_home: {},
+  # fixed names: git worktrees (other compose project names) share the same Linux caches
+  toolbox_venv: {name: signal_toolbox_venv},
+  toolbox_node_modules: {name: signal_toolbox_node_modules},
+  toolbox_web_node_modules: {name: signal_toolbox_web_node_modules},
+  toolbox_next: {name: signal_toolbox_next},
+  toolbox_browsers: {name: signal_toolbox_browsers},
+  toolbox_cache: {name: signal_toolbox_cache},
+  toolbox_pnpm: {name: signal_toolbox_pnpm}}
 
 # ADR-023: WSL's eth0 has MTU 1400; Docker bridges default to 1500, which stalls large TLS downloads.
 # Scoped to this project's network only (the daemon config and other projects are untouched).

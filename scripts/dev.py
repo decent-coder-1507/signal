@@ -14,6 +14,7 @@ e2e          reset e2e db, seed demo, Playwright
 check        test + e2e (milestone gate)
 runner-check one real headless Claude call through the Claude Runner (uses your subscription)
 backup | restore <file>
+linux <cmd>  run any command above inside the Linux toolbox container (ADR-024), e.g. `linux check`
 """
 
 from __future__ import annotations
@@ -114,6 +115,20 @@ def cmd_init_env() -> None:
     print(f"Created {target} (mode live, Redis queue on, fastembed).")
     print(f"Admin login: SIGNAL_ADMIN_EMAIL from .env, password: {password}")
     print("Store the password in your password manager; it is not shown again.")
+
+
+def cmd_linux(args: list[str]) -> None:
+    """Run `scripts/dev.py <args>` in the Linux toolbox (Docker in the Alpine WSL distro on Windows)."""
+    inner = "docker compose --profile dev run --rm -T toolbox python scripts/dev.py " + " ".join(
+        f"'{a}'" for a in args
+    )
+    if IS_WIN:
+        drive, rest = str(ROOT).split(":", 1)
+        wsl_root = f"/mnt/{drive.lower()}{rest.replace(chr(92), '/')}"
+        distro = os.environ.get("SIGNAL_WSL_DISTRO", "Alpine")
+        ensure_wsl_docker()
+        sys.exit(subprocess.call(["wsl", "-d", distro, "--", "sh", "-c", f"cd '{wsl_root}' && {inner}"]))
+    sys.exit(subprocess.call(["sh", "-c", inner], cwd=ROOT))
 
 
 def cmd_infra() -> None:
@@ -244,6 +259,8 @@ def main() -> None:
         cmd_setup()
     elif c == "init-env":
         cmd_init_env()
+    elif c == "linux":
+        cmd_linux(sys.argv[2:] or ["check"])
     elif c == "infra":
         cmd_infra()
     elif c == "migrate":
