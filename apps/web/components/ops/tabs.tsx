@@ -310,7 +310,7 @@ export function CostsTab() {
         <h2 className="card-title mb-2">By day</h2>
         <BarChart label="Cost by day" bars={c.by_day.map((d) => ({ x: d.date, y: d.cost }))} format={(v) => `$${v.toFixed(2)}`} />
       </Card>
-      <div className="grid gap-3.5 md:grid-cols-3">
+      <div className="grid items-start gap-3.5 md:grid-cols-3">
         <CostTable title="By task" rows={c.by_task.map((r) => [r.task, r.cost, r.calls])} />
         <CostTable title="By tier" rows={c.by_tier.map((r) => [r.tier, r.cost, r.calls])} />
         <CostTable title="By routine" rows={c.by_routine.map((r) => [r.routine, r.cost, null])} />
