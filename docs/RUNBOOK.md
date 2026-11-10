@@ -80,3 +80,8 @@ Caddy provides HTTPS automatically.
 | Carousel render fails | Chrome must be installed; check `SIGNAL_RENDER_CHANNEL` |
 | `DLL load failed … Application Control policy has blocked this file` | Windows Smart App Control blocked a compiled file in `.venv`; see ADR-022 (`uv sync --reinstall-package <pkg>` after adding it to `no-binary-package`) |
 | Nothing in the brief | Quiet day (by design), or ingest hasn't run: Ops → Runs → `continuous_ingest` |
+
+## Autostart (Windows logon) and memory cap (ADR-028)
+- Task Scheduler → `SIGNAL` runs at logon, hidden: `conhost.exe --headless wsl.exe -d Alpine -u root --exec sh "<repo>/scripts/autostart.sh"`. Log: `/var/log/signal-autostart.log` in Alpine.
+- Disable: Task Scheduler → SIGNAL → Disable (or `Unregister-ScheduledTask SIGNAL`). Stop now: `wsl --terminate Alpine`.
+- `%USERPROFILE%\.wslconfig`: `[wsl2] memory=3GB` and `[experimental] autoMemoryReclaim=gradual`. Changes apply after `wsl --shutdown` or a reboot, and affect all WSL distros.
