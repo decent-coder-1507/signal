@@ -1077,3 +1077,40 @@ def ask(inputs: dict[str, Any]) -> dict[str, Any]:
     if inputs.get("mode") == "compare":
         parts.insert(0, "Here is how they compare, based on your sources:")
     return {"answer": " ".join(parts), "insufficient": False}
+
+
+# ---------------- benchmark labelling (ADR-026): deterministic stand-ins, never product output ----------------
+@mock_generator("bench_label_items")
+def bench_label_items(inputs: dict[str, Any]) -> dict[str, Any]:
+    prof = inputs.get("profile", {})
+    core = _words5(" ".join(prof.get("core", [])))
+    adj = _words5(" ".join(prof.get("adjacent", [])))
+    out = []
+    for it in inputs.get("items", []):
+        w = _words5(it["title"] + " " + it["text"])
+        c, a = len(w & core), len(w & adj)
+        rel = 3 if c >= 4 else 2 if c >= 2 else 1 if c + a >= 1 else 0
+        ring = "core" if c >= 2 else "adjacent" if a >= 1 else "wide" if c else "none"
+        out.append(
+            {"id": it["id"], "relevance": rel, "ring": ring, "reason": f"{c} core / {a} adjacent terms"}
+        )
+    return {"labels": out}
+
+
+@mock_generator("bench_label_pairs")
+def bench_label_pairs(inputs: dict[str, Any]) -> dict[str, Any]:
+    out = []
+    for p in inputs.get("pairs", []):
+        a, b = _words5(p["a"]["title"]), _words5(p["b"]["title"])
+        j = len(a & b) / max(1, len(a | b))
+        out.append({"id": p["id"], "same_event": j >= 0.35, "reason": f"title overlap {j:.2f}"})
+    return {"pairs": out}
+
+
+@mock_generator("bench_questions")
+def bench_questions(inputs: dict[str, Any]) -> dict[str, Any]:
+    out = []
+    for it in inputs.get("items", []):
+        words = sorted(_words5(it["title"]), key=lambda x: (-len(x), x))[:3]
+        out.append({"id": it["id"], "question": "What happened with " + " ".join(words) + "?"})
+    return {"questions": out}

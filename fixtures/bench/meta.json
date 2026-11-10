@@ -1,0 +1,26 @@
+{
+  "built_at": "2026-11-09",
+  "labeller": {
+    "items": {
+      "models": {
+        "claude-sonnet-5-5": 300
+      },
+      "task": "bench_label_items/v1"
+    },
+    "pairs": {
+      "models": {
+        "claude-sonnet-5-5": 60
+      },
+      "task": "bench_label_pairs/v1"
+    }
+  },
+  "population": {
+    "corpus": 6899,
+    "passed": 817,
+    "rejected": 6082
+  },
+  "sample": {
+    "passed": 180,
+    "rejected": 120
+  }
+}

@@ -426,3 +426,38 @@ class AskOut(Out):
 
 
 register(AskOut)
+
+
+# ---------------- Benchmark labelling (ADR-026) ----------------
+# Labels are model judgements used only to measure engines; they never reach product output.
+class BenchItemLabel(Out):
+    id: str
+    relevance: int = Field(ge=0, le=3, description="0 irrelevant, 1 tangential, 2 relevant, 3 must-read")
+    ring: Literal["core", "adjacent", "wide", "none"]
+    reason: str = Field(description="at most 20 words, concrete")
+
+
+class BenchLabelBatch(Out):
+    labels: list[BenchItemLabel]
+
+
+class BenchPairLabel(Out):
+    id: str
+    same_event: bool
+    reason: str = Field("", description="at most 20 words")
+
+
+class BenchPairBatch(Out):
+    pairs: list[BenchPairLabel]
+
+
+class BenchQuestion(Out):
+    id: str
+    question: str = Field(description="a natural question this item answers, at most 20 words")
+
+
+class BenchQuestionBatch(Out):
+    questions: list[BenchQuestion]
+
+
+register(BenchLabelBatch, BenchPairBatch, BenchQuestionBatch)
