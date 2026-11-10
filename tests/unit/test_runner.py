@@ -138,3 +138,16 @@ async def test_provider_unavailable_when_cli_missing(monkeypatch: pytest.MonkeyP
         await ClaudeRunnerProvider().complete(
             system="", messages=[Msg("user", "x")], model="m", max_tokens=1, temperature=0
         )
+
+
+def test_every_prompt_renders_a_non_empty_user_turn_without_optional_inputs() -> None:
+    # The live explainer failed: its user turn only listed optional SOURCES, so with none it rendered empty.
+    from signal_core.llm.prompts import select as select_prompt
+    from signal_core.settings import get_settings
+
+    tpl = select_prompt(get_settings().prompts_dir, "explainer")
+    _system, user = tpl.render(
+        {"topic": "KV cache", "depth": "engineer", "role": "AI engineer", "known": [], "sources": []},
+        "Asia/Kolkata",
+    )
+    assert "KV cache" in user

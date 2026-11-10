@@ -18,7 +18,7 @@ from signal_core.config import get_config
 from signal_core.db.models import Brief, Card, Story, StoryInsight, Watch, WatchHit
 from signal_core.llm import router as llm
 from signal_core.llm.provider import BudgetExceeded, LLMError
-from signal_core.radar.insight import degraded_insight, latest_insight
+from signal_core.radar.insight import degraded_insight, generate_insights, latest_insight, needs_insight
 from signal_core.radar.scoring import mmr
 from signal_core.truth import first_sentence
 
@@ -129,13 +129,20 @@ async def assemble(
         if exploration is not None:
             top = [*top[: max_stories - 1], exploration]
 
+    # The brief's own stories get real insights first (≤ max_stories calls): the pipeline's insight pool is ranked
+    # across all stories, so the few chosen here could otherwise fall back to degraded summaries.
+    missing = [s for s in top if needs_insight(s, await latest_insight(session, s.id))]
+    if missing:
+        await generate_insights(session, missing, run_id)
+        await session.flush()
+
     degraded = False
     cards = []
     for s in top:
         ins = await latest_insight(session, s.id)
         if ins is None:
             ins = await degraded_insight(session, s)
-            degraded = True
+        degraded = degraded or bool(ins.degraded)
         cards.append(_card(s, ins, is_update(s), s is exploration))
 
     rest = [s for s in pool if s not in top and not s.last_shown_at][: cfg.profile.brief.quick_hits]

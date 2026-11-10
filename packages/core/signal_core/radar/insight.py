@@ -6,9 +6,11 @@ sentences dropped before storage (§9.8). Insights are regenerated when a story 
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from signal_core.config import get_config
 from signal_core.db.base import OWNER_ID
 from signal_core.db.models import Item, ItemEnrichment, Profile, Source, Story, StoryInsight, StoryItem
+from signal_core.db.session import session_scope
 from signal_core.llm import router as llm
 from signal_core.llm.provider import BudgetExceeded, LLMError
 from signal_core.logging import get_logger
@@ -67,7 +70,7 @@ async def story_items(
 
 
 def needs_insight(story: Story, ins: StoryInsight | None) -> bool:
-    if ins is None:
+    if ins is None or ins.degraded:  # a degraded fallback is upgraded as soon as the LLM is available again
         return True
     return bool(story.material_update_at and story.material_update_at > ins.created_at)
 
@@ -85,6 +88,7 @@ async def generate_insights(
         "stack": prof.stack if prof else owner.stack,
         "context": "",
     }  # VANCO context is sensitive: only sent when the user enables it (§16.2)
+    prepared: list[tuple[Story, list[Any], list[dict[str, Any]], set[str], bool]] = []
     for s in stories:
         ins = await latest_insight(session, s.id)
         if not force and not needs_insight(s, ins):
@@ -104,24 +108,35 @@ async def generate_insights(
             for si, it, src, _e in rows[:6]
         ]
         allowed = {str(it.id) for _si, it, _src, _e in rows}
-        try:
-            if len(rows) > 1 and (s.title == rows[0][1].title or not (s.scores or {}).get("titled")):
+        want_title = len(rows) > 1 and (s.title == rows[0][1].title or not (s.scores or {}).get("titled"))
+        prepared.append((s, rows, items, allowed, want_title))
+
+    async def call(rows: list[Any], items: list[dict[str, Any]], want_title: bool) -> tuple[Any, Any]:
+        # Independent LLM calls run concurrently (runner caps parallel `claude -p`), each on its own session.
+        async with session_scope() as s2:
+            t = None
+            if want_title:
                 t = await llm.call(
-                    "story_title", {"titles": [r[1].title for r in rows[:6]]}, session=session, run_id=run_id
+                    "story_title", {"titles": [r[1].title for r in rows[:6]]}, session=s2, run_id=run_id
                 )
-                s.title = t.output.title[:500]
-                s.scores = {**(s.scores or {}), "titled": True}
-                st.titled += 1
             r = await llm.call(
-                "story_insight",
-                {"profile": pinfo, "items": items, "related": []},
-                session=session,
-                run_id=run_id,
+                "story_insight", {"profile": pinfo, "items": items, "related": []}, session=s2, run_id=run_id
             )
-        except (LLMError, BudgetExceeded) as e:
-            log.warning("insight_unavailable", story=str(s.id), error=str(e))
+            return t, r
+
+    results = await asyncio.gather(*(call(p[1], p[2], p[4]) for p in prepared), return_exceptions=True)
+    for (s, rows, _items, allowed, _want), res in zip(prepared, results, strict=True):
+        if isinstance(res, (LLMError, BudgetExceeded)):
+            log.warning("insight_unavailable", story=str(s.id), error=str(res))
             st.skipped_unavailable = True
-            break
+            continue
+        if isinstance(res, BaseException):
+            raise res
+        t, r = res
+        if t is not None:
+            s.title = t.output.title[:500]
+            s.scores = {**(s.scores or {}), "titled": True}
+            st.titled += 1
         o = r.output
         what = drop_uncited_sentences(o.what_happened, allowed)
         changes = strip_unknown_citations(o.what_changes, allowed)

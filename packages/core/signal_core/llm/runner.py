@@ -155,6 +155,9 @@ class ClaudeRunnerProvider:
         meta: dict[str, Any] | None = None,
     ) -> LLMResult:
         # max_tokens/temperature have no CLI flag; prompts state length limits instead (ADR-001).
+        if not any(m.content.strip() for m in messages):
+            task = (meta or {}).get("task", "?")
+            raise LLMError(f"empty user prompt for task '{task}' (the prompt template rendered nothing)")
         bin_path = self._resolve_bin()
         use_mcp = bool(meta and meta.get("use_mcp") and self.mcp_config)
         fd, sys_path = tempfile.mkstemp(prefix="signal-sys-", suffix=".md")
