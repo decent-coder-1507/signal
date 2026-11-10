@@ -20,6 +20,7 @@ from signal_core.llm import router as llm
 from signal_core.llm.provider import BudgetExceeded, LLMUnavailable
 from signal_core.logging import get_logger
 from signal_core.ops.metrics import ITEMS_ENRICHED
+from signal_core.settings import get_settings
 from signal_core.truth import validate_key_facts
 
 log = get_logger("enrich")
@@ -118,9 +119,13 @@ async def enrich_pending(
     by_id = {str(i.id): i for i in items}
     batches = [items[k : k + BATCH] for k in range(0, len(items), BATCH)]
 
+    # Bound the fan-out to the runner's parallelism: a task takes a DB connection only while it holds a
+    # Claude slot (unbounded gather held one connection per pending batch and exhausted the pool).
+    slots = asyncio.Semaphore(max(1, get_settings().runner_concurrency))
+
     async def call(batch: list[Item]) -> Any:
         # Independent LLM calls run concurrently (the runner caps parallel `claude -p`); each on its own session.
-        async with session_scope() as s:
+        async with slots, session_scope() as s:
             return await llm.call(
                 "enrich_items", enrich_inputs(batch, sources, topics), session=s, run_id=run_id
             )

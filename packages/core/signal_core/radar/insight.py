@@ -22,6 +22,7 @@ from signal_core.db.session import session_scope
 from signal_core.llm import router as llm
 from signal_core.llm.provider import BudgetExceeded, LLMError
 from signal_core.logging import get_logger
+from signal_core.settings import get_settings
 from signal_core.truth import check_citations, drop_uncited_sentences, strip_unknown_citations
 
 log = get_logger("insight")
@@ -111,9 +112,13 @@ async def generate_insights(
         want_title = len(rows) > 1 and (s.title == rows[0][1].title or not (s.scores or {}).get("titled"))
         prepared.append((s, rows, items, allowed, want_title))
 
+    # Bound the fan-out to the runner's parallelism: a task takes a DB connection only while it holds a
+    # Claude slot (unbounded gather held one connection per pending batch and exhausted the pool).
+    slots = asyncio.Semaphore(max(1, get_settings().runner_concurrency))
+
     async def call(rows: list[Any], items: list[dict[str, Any]], want_title: bool) -> tuple[Any, Any]:
         # Independent LLM calls run concurrently (runner caps parallel `claude -p`), each on its own session.
-        async with session_scope() as s2:
+        async with slots, session_scope() as s2:
             t = None
             if want_title:
                 t = await llm.call(
