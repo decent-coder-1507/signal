@@ -6,18 +6,17 @@ import { Bell } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { get, post } from "@/lib/api";
+import { notificationHref } from "@/lib/browser-notify";
 import { useToday } from "@/lib/hooks";
 import { fmtDateTime, humanize } from "@/lib/labels";
 import type { Notification } from "@/lib/types";
 
 function hrefFor(n: Notification): string | null {
   const p = n.payload;
-  if (typeof p.story_id === "string") return `/stories/${p.story_id}`;
-  if (typeof p.draft_id === "string") return `/studio/drafts/${p.draft_id}`;
   if (typeof p.idea_id === "string") return `/lab/${p.idea_id}`;
-  if (typeof p.brief_id === "string" || n.kind.includes("brief")) return "/brief";
   if (n.kind.includes("review")) return "/reviews";
-  return null;
+  const href = notificationHref(n); // shared with browser notifications: brief, weekly/monthly, cards, story, draft
+  return href === "/" ? null : href;
 }
 
 export function NotificationBell({ className }: { className?: string }) {
