@@ -24,9 +24,10 @@ Local embeddings: `uv sync --all-packages --all-extras` installs fastembed. Set 
 ## 3. Daily operation
 - The scheduler runs everything: ingest every 30 min, the weekday brief at 07:30 IST (weekends 09:00), cards at 13:00, the weekly review on Sunday 10:00, the monthly review on the 1st, and nightly maintenance at 02:30 (merge, retrain, source health, **backup**, evals sample, cache cleanup, scheduler health).
 - Keep `python scripts/dev.py up` running. To start it at login, use Task Scheduler with "At log on → python scripts/dev.py up".
-- **Telegram (optional):** create a bot with @BotFather and put `SIGNAL_TELEGRAM_BOT_TOKEN` and `SIGNAL_TELEGRAM_CHAT_ID` in `.env` (send `/start` to the bot, then look up your chat id via `getUpdates`). Turn on Settings → Channels → Telegram. Locally run `uv run python -m signal_core.notify.telegram_poll`. On a VPS use the webhook (`/telegram/webhook` with the `telegram_webhook_secret` setting).
+- **Notifications are in-app** (ADR-027): briefs, reviews, watch hits and due cards land in the bell. Browser notifications are a per-device opt-in in Settings → Channels (local polling while a tab or the installed PWA is open; no push service). After pulling ADR-027, run `python scripts/dev.py seed` once so routines you haven't edited drop their old channels.
+- **First sign-in:** change the admin password in Settings → Security (a banner reminds you while it is still `change-me-now`).
 - **Email (optional):** set `SIGNAL_SMTP_URL=smtp://user:pass@host:587` and turn on Settings → Channels → Email. In mock mode, or without SMTP, digests are written to `data/outbox/*.eml`.
-- Health: `/health`, the Ops page (runs, LLM ledger, costs, evals, source health, dead letters) and Prometheus at `/metrics`.
+- Health: `/health`, the Ops page (runs, LLM ledger, costs, evals, engine quality, source health, dead letters) and Prometheus at `/metrics`.
 
 ## 4. Claude Runner
 - Every LLM call goes through `signal_core.llm.router` → `ClaudeRunnerProvider` → `claude -p --output-format json --json-schema … --tools "" --no-session-persistence`, with the system prompt in a temp file and the prompt on stdin, run outside the repo.
@@ -61,7 +62,7 @@ docker compose exec worker claude          # → /login once (credentials persis
 docker compose exec api uv run python -m signal_core.cli migrate
 docker compose exec api uv run python -m signal_core.cli seed
 ```
-Caddy provides HTTPS automatically. Point the Telegram webhook at `https://your.domain/api/telegram/webhook` with your secret.
+Caddy provides HTTPS automatically.
 
 ## 8. Publishing terms (verified 2026-11-07, ADR-019)
 - Default for every platform is **publish-assist**: SIGNAL copies the text, opens the composer, and you post and paste the URL. It never auto-posts.

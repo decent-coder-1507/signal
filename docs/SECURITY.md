@@ -9,7 +9,7 @@ Reviewed 2026-11-08. ✅ = implemented and covered by a test or a recorded check
 | Sessions | Signed HttpOnly SameSite=Lax cookie; `Secure` behind HTTPS (`SIGNAL_COOKIE_SECURE`) | ✅ ADR-008 |
 | CSRF | Double-submit cookie + `x-csrf-token` on every cookie-authenticated write | ✅ `test_csrf_required_for_cookie_writes` |
 | API token | sha256-hashed, rotatable; cannot change credentials; changing 2FA/token needs password (+ current TOTP) | ✅ `test_credential_changes_require_reauth_and_session` |
-| Telegram | Webhook secret header + single chat-id allowlist; long polling locally | ✅ `test_telegram_webhook_requires_secret`, other chats ignored |
+| Telegram (dormant since ADR-027) | Webhook secret header + single chat-id allowlist; long polling locally | ✅ `test_telegram_webhook_requires_secret`, other chats ignored |
 | SSRF | Outbound fetches: http(s) only, public IPs only, redirects re-validated | ✅ ADR-017, `tests/unit/test_ssrf_guard.py` |
 | XSS | Only http(s) URLs become hrefs (`safeUrl`); server drops non-http(s) item URLs at ingest; Markdown rendered to React nodes (no raw HTML) | ✅ `apps/web/lib/safe-url.ts` + test |
 | XML | OPML parsed with defusedxml (no DTD/entities) | ✅ `test_opml_import` |
