@@ -201,6 +201,9 @@ class ScoringCfg(Strict):
     relevance_cosine_scale: dict[str, tuple[float, float]] = {"fastembed": (0.45, 0.8), "mock": (0.0, 0.45)}
     # When set for the embedder and topic centroids exist, relevance uses the centroids with this scale (ADR-026).
     relevance_centroid_scale: dict[str, tuple[float, float]] = {}
+    # Per-embedder weight overrides (merged over `weights`, must still sum to 1): the ADR-026 refit was measured on
+    # bge-small; the mock embedder keeps the spec defaults its fixture tests were written against.
+    weight_overrides: dict[str, dict[str, float]] = {}
     adjacent_tech_relevance_min: float = 0.6
     mmr_lambda: float = Field(0.7, ge=0, le=1)
     novelty_window_days: int = 14
@@ -212,6 +215,11 @@ class ScoringCfg(Strict):
 
     def cluster_for(self, embedder: str) -> ClusterCfg:
         return self.cluster.model_copy(update=self.cluster_overrides.get(embedder, {}))
+
+    def weights_for(self, embedder: str) -> Weights:
+        return Weights.model_validate(
+            {**self.weights.model_dump(), **self.weight_overrides.get(embedder, {})}
+        )
 
     def prefilter_min_for(self, embedder: str) -> float:
         return self.prefilter_min_by_embedder.get(embedder, self.prefilter_min)

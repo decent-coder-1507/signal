@@ -117,3 +117,51 @@ Chosen from `docs/design/directions.html`: direction A ("Bento intelligence") is
 - **Type:** Inter (UI) and JetBrains Mono (numbers, ids, timestamps, kbd) via `next/font/google`; Archivo 800 and Instrument Serif are used only by the story header (`.story-rank` in hot orange `#FF5A1F`/`#FF7A45`, `.story-headline`, `.story-dek`). Source Serif was dropped.
 - **Layout:** Today, Gym progress and Ops health/costs are bento grids. Brief story cards show a mono rank, chips, the tinted why box and `j k u p b l x` hints. Studio/Lab Kanban, tables and lists keep their structure with the card styling. Mobile keeps the bottom nav and gains a compact top bar.
 - **Review:** `e2e/visual.spec.ts` writes full-page screenshots (light/dark × desktop/375 px) to `docs/design/screens/` without pixel assertions.
+
+## ADR-026 · Real-data benchmark and the engine changes it justified (2026-11-10)
+**Method.** A restored copy of the live DB (`signal_bench`, 6,899 non-duplicate items from 56 sources, bge-small embeddings) was the sample frame; the user's `signal` DB was only read by `pg_dump`. Its 300 enrichments, 253 stories and all ledger rows came from the mock provider and were dropped first. `python -m signal_core.ops.bench build …` then:
+- sampled 300 items round-robin across sources: 120 the deployed keyword prefilter had rejected and 180 it had passed. Population metrics re-weight the two strata to the corpus (6,082 rejected / 817 passed);
+- labelled them with Claude (`bench_label_items`, balanced tier, 15 per call): relevance 0–3 to `config/profile.yaml`, ring, reason. 124 of 300 are relevant (≥ 2);
+- built 210 candidate same-event pairs (cosine-stratified 0.40–0.95 within 7 days, mostly cross-source, plus 30 random same-week pairs) and labelled them (`bench_label_pairs`): 54 same event;
+- ran the real P1 enrichment (haiku) on all 636 sample/pair items for entities, ring and tech relevance; stored each labelled item's corpus neighbours (cosine ≥ 0.78) as a story proxy; computed keyword-seeded topic centroids from the whole corpus;
+- generated 30 Ask questions from relevant items (`bench_questions`), and added each target's 25 nearest corpus items (428 hard negatives) so the Ask corpus is 1,064 items;
+- ran the P3 judge on 40 held-out items.
+Everything is committed under `fixtures/bench/` (text clipped to 4,000 characters, embeddings as base64 float16). `python -m signal_core.ops.bench run` recomputes every metric offline with the product code (`prefilter`, `compatible`, `apply_scores`, `ask.retrieve`); the clustering part replays `assign_item` + one `merge_pass` in memory and counts LLM tie-breaks as "not the same". `run --baseline` re-measures the pre-ADR engines. Ranking uses 50 pools of 40 held-out (test-split) items; weights were fitted on the train split only.
+
+**Label source and limits.** Labels are Claude judgements, not facts, and are never shown as product output. A second, independent pass by the deep tier (opus) on 60 items agreed exactly on 80%, within one grade on 100%, on relevant/not on 92% (Cohen's κ 0.83, Spearman 0.89). Pair labels look right on inspection but are strict about "series" posts (two OpenAI posts about one launch were labelled different events). The judge and the labeller are both Claude, so the judge's gain is inflated. Clustering thresholds were chosen on the same 210 pairs they are reported on (half-split F1 0.80 / 0.88 shows they are not a fluke). Population prefilter estimates rest on 30 relevant items in the rejected stratum, each weighing ~51 corpus items, so they are noisy. `fixtures/bench/SPOTCHECK.md` has 30 random labels for the user to confirm.
+
+**Found while measuring.** The live DB was seeded in mock mode and then ingested with fastembed: profile vectors were hashed bag-of-words, item vectors bge-small, so every profile cosine was ~0. The prefilter ran on keywords alone (deployed recall ~0.22), and relevance scoring had no embedding signal. `ensure_profile_vectors` now records which embedder made the profile vectors (setting `profile_vectors.embedder`) and rebuilds them on a mismatch.
+
+**Before → after** (full benchmark; "before" = `run --baseline`, the engines as configured before this ADR):
+
+| metric | deployed | before | after |
+|---|---|---|---|
+| Prefilter recall, relevant items (sample) | 0.76 | 0.88 | **0.94** |
+| Prefilter recall, corpus estimate | 0.22 | 0.61 | **0.82** |
+| Prefilter pass rate, corpus estimate | 11.8% | 30.9% | 47.6% |
+| Prefilter precision, corpus estimate | 0.52 | 0.56 | 0.48 |
+| Prefilter ranking AUC | — | 0.76 | **0.81** |
+| Clustering pairwise P / R / F1 | — | 0.55 / 0.65 / 0.59 | **0.80 / 0.89 / 0.84** |
+| Ranking NDCG@10 / P@7 (held out, no judge) | — | 0.54 / 0.54 | **0.69 / 0.80** |
+| Ranking with the LLM judge, n = 40: NDCG@10 / P@7 | — | 0.79 / 1.00 | 0.75 / 1.00 |
+| Ask recall@5 / recall@1 / MRR (30 q, 1,064 items) | — | 0.97 / 0.90 / 0.93 | **1.00 / 1.00 / 1.00** |
+
+"Deployed" uses the statuses the live run actually stored; "before" re-runs the old code with today's keyword lists, which had already improved since that ingest. Without the judge the judged subset scores 0.66 (before) and 0.62 (after) NDCG@10; with it both reach P@7 1.0. On 40 items in a single pool these differences are noise.
+
+**Changes kept** (each measured on its own before it was kept):
+- **Hybrid prefilter** (`radar/prefilter.py`, `prefilter_hybrid`, `prefilter_min_by_embedder`): score = 0.6·scale(cosine to keyword-seeded topic centroids, 0.60→0.80) + 0.4·min(1, 2·keyword score), pass at 0.55. A centroid is the mean embedding of corpus items naming ≥ 2 of a topic's keywords (falling back to title hits; ≥ 20 items needed), rebuilt after profile changes and nightly (`seed.rebuild_topic_centroids`, `ProfileVector.kind = "centroid"`). AUC by score: one embedding of "topic: kw1, kw2 …" 0.73, keywords alone 0.76, centroids alone 0.77, hybrid 0.81. The old max(cosine, keyword) score with correct bge vectors passes 100% of items at 0.25, so the threshold had to move with the score. 0.55 trades a 48% pass rate (~260 of ~550 items/day, ~18 haiku enrichment calls) for corpus recall 0.82. The mock embedder has no scale entry and keeps the legacy score, so mock mode is unchanged.
+- **Relevance from centroids** (`relevance_centroid_scale: fastembed [0.65, 0.85]`): held-out NDCG@10 0.57 → 0.65 with the old weights.
+- **Weights refit** on the train split by grid search: relevance, signal, credibility and momentum were free (their sum fixed at 0.50, each ≥ 0.05, momentum ≥ 0); the judge-driven weights stayed fixed. Train optimum relevance 0.40 / signal 0.05 / credibility 0.05 / momentum 0. Held-out NDCG@10 0.65 → 0.69, P@7 0.69 → 0.80. Tier-1 vendor feeds (Vercel 2.1k, OpenAI 1.4k items) are mostly irrelevant to this reader, so signal and credibility correlate slightly negatively with the labels (Spearman −0.09 / −0.04). The labels measure relevance, not importance; importance still comes from the judge's impact score. On real data, relevant items still clear `brief.min_score` 0.55 at the same rate (95% / 100% for grades 2 / 3) while grade-0 items drop from 47% to 42%. `weight_overrides.mock` keeps the spec weights for the mock embedder its fixture tests were written for.
+- **Clustering:** entity tags are normalised (unicode dashes, vendor prefixes such as `openai/`, corporate suffixes) and specific names match on equality or whole-word containment of ≥ 2 words. Two shared entities now also make two items compatible when their specific names differ. A story whose items all come from one feed only takes more of that feed at cosine ≥ `same_source_join_threshold` 0.90; feed series (fastapi 0.158 vs 0.159, Python point releases, Vercel changelog, arXiv) were most of the false merges. The sweep (join 0.70–0.95 × merge join+0–0.08 × same-feed none/0.88–0.96) chose join 0.82 (unchanged), merge 0.88 → 0.84, same-feed 0.90 (`cluster_overrides.fastembed`). F1: 0.59 → 0.72 (entities) → 0.84 (same-feed rule).
+- **Ask:** FTS ORs the question's words (`ask.fts_mode: any`). With AND, a natural question rarely matched any document, so FTS contributed almost nothing. A local cross-encoder (`Xenova/ms-marco-MiniLM-L-6-v2` via fastembed `TextCrossEncoder`) re-ranks the top 10 fused candidates (`ask.rerank`); it is identity with the mock embedder and when fastembed is missing. Alone, each moved MRR 0.93 → 0.97; together they reach 1.00. Top 20 gave the same result at about twice the latency (~1 s per question on CPU). The benchmark is close to saturated; more and harder questions are the next step.
+
+**Not kept / not changed:**
+- **Momentum** (distinct sources in the last 24 h minus the 24 h before, mapped to 0–1) is computed and shown in "why", but the train-optimal weight was 0. It only helped when it took weight from signal/credibility. 203 of 300 items have no near neighbour, and relevance labels can't reward timeliness, so its weight is 0 until feedback data exists.
+- A BGE query instruction prefix gave the same gain as FTS-any, but items were embedded without it, so it was not adopted.
+- Other rerankers (MiniLM-L-12, jina turbo) failed to download on this link and were not measured.
+- The spec's adjacent-ring exclusion (tech relevance < 0.6) drops 16 of 124 relevant items (funding, India tech, jobs). It is a spec rule, left for the user to decide.
+- Keyword-list fixes (e.g. "open-weight" vs "open-weights", "agentic") were not measured and not changed.
+
+**Locked in:** `tests/integration/test_bench.py` runs the engines in mock mode on a committed subset (`fixtures/bench/regression.json`: 337 items, 121 pairs, 30 questions, committed embeddings, no cross-encoder). It asserts the floors and that the current engines beat the baseline. Re-run `bench subset` only after a measured improvement.
+
+**LLM usage:** 124 Claude Runner calls (24 item-label, including 4 opus agreement calls, 14 pair-label, 2 question, 43 haiku enrichment, 40 judge, 1 runner check). The cross-encoder and embeddings are local.

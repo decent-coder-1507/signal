@@ -1,18 +1,57 @@
 {
   "built_at": "2026-11-09",
+  "fixture_items_by_stratum": {
+    "distractor": 428,
+    "pair": 336,
+    "passed": 180,
+    "rejected": 120
+  },
   "labeller": {
+    "agreement": {
+      "models": {
+        "claude-opus-5-5": 60
+      },
+      "task": "bench_label_items/v1 (deep tier, uncached)"
+    },
+    "enrichment": {
+      "models": {
+        "claude-haiku-5-5": 619
+      },
+      "task": "enrich_items/v1"
+    },
     "items": {
       "models": {
         "claude-sonnet-5-5": 300
       },
       "task": "bench_label_items/v1"
     },
+    "judge": {
+      "models": {
+        "claude-sonnet-5-5": 40
+      },
+      "task": "relevance_judge/v1"
+    },
     "pairs": {
       "models": {
-        "claude-sonnet-5-5": 60
+        "claude-sonnet-5-5": 210
       },
       "task": "bench_label_pairs/v1"
+    },
+    "questions": {
+      "models": {
+        "claude-sonnet-5-5": 30
+      },
+      "task": "bench_questions/v1"
     }
+  },
+  "llm_calls_live": {
+    "bench_label_items": 24,
+    "bench_label_pairs": 14,
+    "bench_questions": 2,
+    "enrich_items": 43,
+    "relevance_judge": 40,
+    "runner_check": 1,
+    "total": 124
   },
   "population": {
     "corpus": 6899,

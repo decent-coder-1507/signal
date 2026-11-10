@@ -32,7 +32,7 @@ from signal_core.radar.prefilter import CENTROID, ProfileVec, prefilter
 from signal_core.radar.scoring import ScoreContext, apply_scores
 from signal_core.services.seed import profile_vector_rows
 
-RELEVANT = 2  # label ≥ 2 counts as relevant
+RELEVANT = 2  # label â‰¥ 2 counts as relevant
 POOL_SIZE, POOLS, POOL_SEED = 40, 50, 7
 
 # Engine settings before ADR-026, so `run --baseline` can always re-measure the starting point.
@@ -52,7 +52,7 @@ BASELINE: dict[str, Any] = {
         "learned": 0.05,
         "momentum": 0.0,
     },
-    "ask": {"rerank": False},
+    "ask": {"rerank": False, "fts_mode": "all", "query_prefix": ""},
 }
 
 
@@ -83,6 +83,7 @@ def baseline_variant() -> Variant:
     upd: dict[str, Any] = {
         "prefilter_min": BASELINE["prefilter_min"],
         "prefilter_hybrid": BASELINE["prefilter_hybrid"],
+        "prefilter_min_by_embedder": {},
         "cluster": cl,
         "cluster_overrides": {k: v for k, v in sc.cluster_overrides.items() if k != "fastembed"},
         "weights": sc.weights.model_copy(update=BASELINE["weights"]),
@@ -305,7 +306,7 @@ def cluster_metrics(
 
 
 def pair_curve(bench: Bench, entities: bool = True) -> list[dict[str, float]]:
-    """Pairwise classifier: same event iff cosine ≥ t (and entity-compatible): the raw separability."""
+    """Pairwise classifier: same event iff cosine â‰¥ t (and entity-compatible): the raw separability."""
     pairs = [p for p in bench.pairs if p.same_event is not None]
     vec = _vecs(bench, [bench.items[x] for p in pairs for x in (p.a, p.b)])
     gold = [bool(p.same_event) for p in pairs]
@@ -355,7 +356,7 @@ def _member(it: BenchItem, prefilter_score: float) -> dict[str, Any]:
 def story_for(
     bench: Bench, it: BenchItem, prefilter_score: float, cfg: ClusterCfg, judge: dict[str, Any] | None = None
 ) -> tuple[Story, list[dict[str, Any]], datetime]:
-    """A labelled item as the story it would anchor: its corpus neighbours (cosine ≥ join, published by `now`)
+    """A labelled item as the story it would anchor: its corpus neighbours (cosine â‰¥ join, published by `now`)
     stand in for the other members (sources, tiers, engagement, timing)."""
     now = it.published_at + timedelta(hours=12)
     ms = [_member(it, prefilter_score)]
@@ -405,7 +406,7 @@ async def final_scores(
         pvs_sc, (lo, hi) = cents, cscale
     tp = get_config().profile.topics
     ctx = ScoreContext(
-        weights=v.scoring.weights.model_dump(),
+        weights=v.scoring.weights_for("fastembed").model_dump(),
         pvs=[(p.label, "topic", p.weight, p.vec) for p in pvs_sc],
         lo=lo,
         hi=hi,
@@ -718,7 +719,9 @@ async def write_regression(session: AsyncSession) -> dict[str, Any]:
         "floors": {k: math.floor(pick(cur, p) * 1000) / 1000 for k, p in FLOOR_KEYS.items()},
         "baseline": {k: round(pick(base, p), 4) for k, p in FLOOR_KEYS.items()},
     }
-    (FIXTURE_DIR / REGRESSION_FILE).write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    (FIXTURE_DIR / REGRESSION_FILE).write_text(
+        json.dumps(out, indent=1) + "\n", encoding="utf-8", newline="\n"
+    )
     return {"floors": out["floors"], "baseline": out["baseline"], "items": len(out["items"])}
 
 

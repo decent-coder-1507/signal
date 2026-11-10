@@ -3,6 +3,8 @@
 # signal 0.15, credibility 0.10. Momentum is computed and shown but did not help on this benchmark, so weight 0.
 weights: {relevance: 0.40, impact: 0.15, signal: 0.05, novelty: 0.10,
           credibility: 0.05, durability: 0.10, actionability: 0.10, learned: 0.05, momentum: 0.0}
+weight_overrides:
+  mock: {relevance: 0.25, signal: 0.15, credibility: 0.10}   # spec defaults for the hashed bag-of-words embedder
 prefilter_min: 0.25
 # Hybrid prefilter (ADR-026): w·scale(cosine to keyword-seeded topic centroids) + (1−w)·min(1, 2·keyword score).
 # Chosen on the real-data benchmark (fixtures/bench): AUC 0.81 vs 0.76 keywords-only; at 0.55 the estimated corpus
@@ -31,3 +33,7 @@ llm_relevance_top_n: 60
 exploration_slot: true
 feedback_max_weight_shift_per_month: 0.2
 lab_spark_threshold: 6.5
+# Ask retrieval (ADR-026). FTS ORs the question's words (AND matched almost nothing for natural questions), then a
+# local cross-encoder re-ranks the top 10 fused candidates (identity with the mock embedder). Benchmark (30 questions,
+# 1,064-item corpus with hard negatives): MRR 0.933 → 1.000, recall@1 0.90 → 1.00, recall@5 0.967 → 1.00.
+ask: {rerank: true, rerank_model: Xenova/ms-marco-MiniLM-L-6-v2, rerank_candidates: 10, fts_mode: any}

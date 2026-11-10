@@ -143,7 +143,9 @@ class EmbeddingCache:
 
     def save(self) -> None:
         if self.dirty:
-            self.path.write_text(json.dumps(self.data, sort_keys=True, indent=0) + "\n", encoding="utf-8")
+            self.path.write_text(
+                json.dumps(self.data, sort_keys=True, indent=0) + "\n", encoding="utf-8", newline="\n"
+            )
             self.dirty = False
 
 
@@ -184,7 +186,9 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
 def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        "".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in rows), encoding="utf-8"
+        "".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in rows),
+        encoding="utf-8",
+        newline="\n",
     )
 
 
@@ -212,4 +216,6 @@ def save_questions(qs: list[Question], root: Path = FIXTURE_DIR) -> None:
 
 
 def save_meta(meta: dict[str, Any], root: Path = FIXTURE_DIR) -> None:
-    (root / "meta.json").write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (root / "meta.json").write_text(
+        json.dumps(meta, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n"
+    )

@@ -241,7 +241,7 @@ async def score_stories(
         if cents:
             pvs, (lo, hi) = cents, cscale
     ctx = ScoreContext(
-        weights=cfg.weights.model_dump(),
+        weights=cfg.weights_for(get_embedder().name).model_dump(),
         pvs=pvs,
         lo=lo,
         hi=hi,

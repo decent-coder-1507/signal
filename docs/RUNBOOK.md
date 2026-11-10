@@ -40,6 +40,9 @@ Local embeddings: `uv sync --all-packages --all-extras` installs fastembed. Set 
 - `python scripts/dev.py check`: both, the milestone gate.
 - `uv run python scripts/verify_sources.py`: probes every starter feed live.
 - `SIGNAL_MODE=mock SIGNAL_DATABASE_URL=…/signal_e2e uv run python scripts/perf.py`: performance against the §16.1 targets.
+- `uv run python -m signal_core.ops.bench run [--baseline] [--sweep] [--json out.json]`: the real-data benchmark (ADR-026). Recomputes prefilter, clustering, ranking and Ask metrics from `fixtures/bench/` (committed Claude labels + fastembed embeddings), offline. The Ask part uses a scratch DB `signal_bench_run` (created on first use, every run rolled back); `--no-ask` skips it. `--baseline` measures the engines as they were before ADR-026.
+- `uv run python -m signal_core.ops.bench subset`: rewrites `fixtures/bench/regression.json`, the floors `tests/integration/test_bench.py` asserts. Run it only after a change is measured better on the full benchmark.
+- Rebuilding the labels (`… bench build <step>`, live mode) only runs against a restored copy named `signal_bench*`, never the main DB, and costs ~125 Claude calls.
 
 ## 6. Backup & restore (§16.5)
 - Nightly (02:30 IST) `backup` step: a `pg_dump -Fc` to `data/backups/daily/signal-YYYYMMDD-HHMMSS.dump` (0600), plus an archive of `data/assets`. Sunday copies go to `weekly/`. Retention is **14 daily + 8 weekly**. Optional off-site copy: `SIGNAL_BACKUP_S3_URL=rclone:remote:bucket/path` (needs rclone).

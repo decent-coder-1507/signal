@@ -507,7 +507,7 @@ async def questions(n: int = 30) -> dict[str, Any]:
         alias = {f"i{k + 1}": it for k, it in enumerate(b)}
         r = await call("bench_questions", {"items": [_brief_item(it, a, 900) for a, it in alias.items()]})
         return [
-            Question(f"q-{alias[q.id].id[:8]}", q.question.strip(), alias[q.id].id)
+            Question(f"q-{alias[q.id].id[-12:]}", q.question.strip(), alias[q.id].id)
             for q in r.output.questions
             if q.id in alias
         ]
@@ -585,7 +585,7 @@ def spotcheck(n: int = 30) -> str:
             f"{names[it.label.relevance]} | {it.label.ring} | {cell(it.label.reason)} |  |"
         )
     out = "\n".join(lines) + "\n"
-    (FIXTURE_DIR / "SPOTCHECK.md").write_text(out, encoding="utf-8")
+    (FIXTURE_DIR / "SPOTCHECK.md").write_text(out, encoding="utf-8", newline="\n")
     return out
 
 
@@ -656,7 +656,42 @@ async def centroids() -> dict[str, Any]:
     return {"centroids": n}
 
 
+async def ask_distractors(per_question: int = 25) -> dict[str, Any]:
+    """Hard negatives for Ask: each question target's nearest corpus items (any status) join the fixture as
+    unlabelled 'distractor' items, so retrieval is not measured on an easy 600-item corpus."""
+    guard_db()
+    rows = await corpus()
+    e, _t = _matrix(rows)
+    bench = load()
+    idx = {r.id: k for k, r in enumerate(rows)}
+    added = 0
+    for q in bench.questions:
+        k = idx[q.item_id]
+        sims = e @ e[k]
+        for j in np.argsort(-sims)[1 : per_question + 1].tolist():
+            r = rows[j]
+            if r.id not in bench.items:
+                bench.items[r.id] = to_item(r, "distractor")
+                bench.cache.put(bench.items[r.id].embed_text, json.loads(r.emb))
+                added += 1
+    async with session_scope() as s:  # full 4,000-character text, like refresh_text
+        got = (
+            await s.execute(
+                text(
+                    "select id::text as id, left(text, 4000) as body from items where id = any(cast(:ids as uuid[]))"
+                ),
+                {"ids": [i for i, it in bench.items.items() if it.stratum == "distractor"]},
+            )
+        ).all()
+    for r in got:
+        bench.items[r.id].text = r.body or ""
+    save_items(bench)
+    bench.cache.save()
+    return {"added": added, "items": len(bench.items)}
+
+
 STEPS: dict[str, Callable[[], Awaitable[Any]]] = {
+    "ask-distractors": ask_distractors,
     "refresh-text": refresh_text,
     "centroids": centroids,
     "pairs-more": pairs_more,

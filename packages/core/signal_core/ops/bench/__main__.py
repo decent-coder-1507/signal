@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     print_report(res)
     if a.json:
-        a.json.write_text(json.dumps(res, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        a.json.write_text(json.dumps(res, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
     return 0
 
 
