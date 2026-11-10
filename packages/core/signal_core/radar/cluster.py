@@ -35,6 +35,25 @@ URL_RX = re.compile(r"https?://[^\s)\]>\"']+")
 ARXIV_RX = re.compile(r"(?:arxiv\.org/(?:abs|pdf)/|/papers/)(\d{4}\.\d{4,5})")
 
 
+DASHES = re.compile(r"[‐-―−]")
+CORP_SUFFIX = re.compile(r"\s+(inc|ltd|limited|llc|corp|corporation|plc|gmbh)\.?$")
+
+
+def norm_tag(tag: str) -> str:
+    """Canonical entity tag (ADR-026): unicode dashes → '-', '-'/'_' → space, vendor prefix dropped from model and
+    product ids ("openai/gpt-live-1" → "gpt live 1"), corporate suffixes dropped ("eMudhra Limited" → "emudhra").
+    On the real-data benchmark, spelling variants were the main reason same-event pairs failed the entity rule."""
+    kind, _, name = tag.partition(":")
+    n = DASHES.sub("-", name.strip().lower())
+    if kind in ("model", "product") and "/" in n:
+        n = n.rsplit("/", 1)[1]
+    if kind != "repo":
+        n = re.sub(r"[-_\s]+", " ", n).strip()
+    if kind == "company":
+        n = CORP_SUFFIX.sub("", n)
+    return f"{kind}:{n}"
+
+
 def entity_tags(entities: dict[str, list[str]]) -> list[str]:
     m = {
         "companies": "company",
@@ -45,16 +64,28 @@ def entity_tags(entities: dict[str, list[str]]) -> list[str]:
         "papers": "paper",
     }
     return sorted(
-        {f"{m[k]}:{n.strip().lower()}" for k, v in (entities or {}).items() if k in m for n in v if n}
+        {norm_tag(f"{m[k]}:{n}") for k, v in (entities or {}).items() if k in m for n in v if n and n.strip()}
     )
 
 
+def _same_name(a: str, b: str) -> bool:
+    """Specific names match if equal, or one is a whole-word part of the other and has ≥ 2 words
+    ("gemini 3.8 live" ⊂ "gemini 3.8 live extended thinking"; "python" ⊄ "python 3.15")."""
+    if a == b:
+        return True
+    short, long_ = (a, b) if len(a) <= len(b) else (b, a)
+    return len(short.split()) >= 2 and f" {short} " in f" {long_} "
+
+
 def compatible(a: list[str], b: list[str], min_overlap: int) -> bool:
-    sa, sb = set(a), set(b)
-    spec_a = {t for t in sa if t.split(":", 1)[0] in SPECIFIC}
-    spec_b = {t for t in sb if t.split(":", 1)[0] in SPECIFIC}
+    sa, sb = {norm_tag(t) for t in a}, {norm_tag(t) for t in b}
+    spec_a = {t.split(":", 1)[1] for t in sa if t.split(":", 1)[0] in SPECIFIC}
+    spec_b = {t.split(":", 1)[1] for t in sb if t.split(":", 1)[0] in SPECIFIC}
     if spec_a and spec_b:
-        return bool(spec_a & spec_b)
+        if any(_same_name(x, y) for x in spec_a for y in spec_b):
+            return True
+        # Specific names differ, but two shared companies/people still tie the reports together (ADR-026).
+        return len(sa & sb) >= 2
     if not sa or not sb:
         return True  # nothing to contradict; rely on cosine alone
     return len(sa & sb) >= min_overlap
@@ -72,6 +103,26 @@ def role_for(item: Item, src: Source | None, story: Story | None, enr: ItemEnric
     if story and item.published_at and item.published_at > story.first_seen + timedelta(hours=24):
         return "followup"
     return "report"
+
+
+async def story_sources(session: AsyncSession, story_id: uuid.UUID) -> set[uuid.UUID]:
+    rows = await session.execute(
+        select(Item.source_id)
+        .join(StoryItem, StoryItem.item_id == Item.id)
+        .where(StoryItem.story_id == story_id)
+    )
+    return set(rows.scalars())
+
+
+async def same_source_blocked(
+    session: AsyncSession, sim: float, cfg: ClusterCfg, story_id: uuid.UUID, other: set[uuid.UUID]
+) -> bool:
+    """One feed rarely reports one event twice, but its series look alike (releases, changelogs, papers): a
+    single-source story only takes more of that feed above cfg.same_source_join_threshold (ADR-026)."""
+    t = cfg.same_source_join_threshold
+    if t is None or sim >= t or len(other) != 1:
+        return False
+    return await story_sources(session, story_id) == other
 
 
 async def recompute(session: AsyncSession, story: Story) -> None:
@@ -134,6 +185,8 @@ async def assign_item(
             sim = float(r.sim)
             if sim < cfg.join_threshold:
                 break
+            if await same_source_blocked(session, sim, cfg, r.id, {item.source_id}):
+                continue
             st = await session.get(Story, r.id)
             if st is not None and compatible(tags, list(st.entity_names or []), cfg.min_entity_overlap):
                 best = (sim, st)
@@ -278,6 +331,8 @@ async def merge_pass(session: AsyncSession, now: datetime, run_id: uuid.UUID | N
             if sim < cfg.merge_threshold - 0.05 or not compatible(
                 list(a.entity_names), list(b.entity_names), cfg.min_entity_overlap
             ):
+                continue
+            if await same_source_blocked(session, sim, cfg, a.id, await story_sources(session, b.id)):
                 continue
             same = sim >= cfg.merge_threshold
             if not same:

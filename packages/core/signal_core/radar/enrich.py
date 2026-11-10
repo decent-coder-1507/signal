@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -72,36 +73,50 @@ async def upsert_entity(session: AsyncSession, etype: str, name: str) -> uuid.UU
     return eid
 
 
-async def enrich_pending(
-    session: AsyncSession, now: datetime, run_id: uuid.UUID | None = None, limit: int = 300
-) -> EnrichStats:
-    st = EnrichStats()
-    items = await pending_items(session, limit)
-    if not items:
-        return st
-    topics = [
+def enrich_topics() -> list[str]:
+    return [
         t.name for ring in ("core", "adjacent", "wide") for t in getattr(get_config().profile.topics, ring)
     ]
+
+
+def enrich_inputs(batch: list[Item], sources: dict[uuid.UUID, Source], topics: list[str]) -> dict[str, Any]:
+    """P1 inputs for one batch (also the LLM cache key, so the benchmark builder can pre-warm it in parallel)."""
+    payload = [
+        {
+            "item_id": str(i.id),
+            "title": i.title,
+            "text": _clip(i.text or i.title),
+            "source": sources[i.source_id].name if i.source_id in sources else "?",
+            "tier": sources[i.source_id].tier if i.source_id in sources else 3,
+            "ring": sources[i.source_id].ring if i.source_id in sources else "core",
+            "content_type": i.content_type,
+            "prefilter": (i.signal_meta or {}).get("prefilter"),
+        }
+        for i in batch
+    ]
+    return {"topics": topics, "items": payload}
+
+
+async def enrich_pending(
+    session: AsyncSession,
+    now: datetime,
+    run_id: uuid.UUID | None = None,
+    limit: int = 300,
+    items: list[Item] | None = None,
+) -> EnrichStats:
+    """Enrich pending items (or exactly `items`, used by the benchmark builder) in batches of BATCH."""
+    st = EnrichStats()
+    items = await pending_items(session, limit) if items is None else items
+    if not items:
+        return st
+    topics = enrich_topics()
     sources = {s.id: s for s in (await session.execute(select(Source))).scalars()}
     by_id = {str(i.id): i for i in items}
     for k in range(0, len(items), BATCH):
         batch = items[k : k + BATCH]
-        payload = [
-            {
-                "item_id": str(i.id),
-                "title": i.title,
-                "text": _clip(i.text or i.title),
-                "source": sources[i.source_id].name if i.source_id in sources else "?",
-                "tier": sources[i.source_id].tier if i.source_id in sources else 3,
-                "ring": sources[i.source_id].ring if i.source_id in sources else "core",
-                "content_type": i.content_type,
-                "prefilter": (i.signal_meta or {}).get("prefilter"),
-            }
-            for i in batch
-        ]
         try:
             res = await llm.call(
-                "enrich_items", {"topics": topics, "items": payload}, session=session, run_id=run_id
+                "enrich_items", enrich_inputs(batch, sources, topics), session=session, run_id=run_id
             )
         except (LLMUnavailable, BudgetExceeded) as e:
             log.warning("enrich_unavailable", error=str(e))

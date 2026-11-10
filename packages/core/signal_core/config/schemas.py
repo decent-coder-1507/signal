@@ -138,6 +138,7 @@ class Weights(Strict):
     durability: float
     actionability: float
     learned: float
+    momentum: float = 0.0  # source-count growth over the last 24 h vs the 24 h before (ADR-026)
 
     @model_validator(mode="after")
     def _sum(self) -> Weights:
@@ -158,15 +159,48 @@ class ClusterCfg(Strict):
     merge_threshold: float = 0.88
     window_days: int = 7
     min_entity_overlap: int = 1
+    # A story whose items all come from one feed only takes another item of that feed above this cosine: one feed
+    # rarely reports one event twice, but its series (releases, changelogs, papers) look alike (ADR-026).
+    same_source_join_threshold: float | None = None
+
+
+class PrefilterHybridCfg(Strict):
+    """Hybrid prefilter (ADR-026): score = w·scale(cos to keyword-seeded topic centroids) + (1−w)·min(1, 2·keyword).
+
+    Embedders without a `cosine_scale` entry (e.g. mock) keep the legacy max(cosine, keyword) score."""
+
+    embedding_weight: float = Field(0.6, ge=0, le=1)
+    cosine_scale: dict[str, tuple[float, float]] = {"fastembed": (0.6, 0.8)}
+    centroid_min_items: int = 20  # a topic needs this many keyword-matched items before it gets a centroid
+    centroid_days: int = 180
+
+
+class AskCfg(Strict):
+    """Ask retrieval (§11.1): RRF over FTS + vector lists, then an optional local cross-encoder re-rank (ADR-026)."""
+
+    rerank: bool = True
+    rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
+    rerank_candidates: int = Field(20, ge=1, le=100)
+    vector_floor: dict[str, float] = {"fastembed": 0.55, "mock": 0.12}
+    fts_mode: Literal["all", "any"] = "all"
+    query_prefix: str = ""  # e.g. the BGE retrieval instruction; must match how items were embedded (none)
 
 
 class ScoringCfg(Strict):
     weights: Weights
     prefilter_min: float = Field(0.25, ge=0, le=1)
+    prefilter_min_by_embedder: dict[
+        str, float
+    ] = {}  # hybrid scores live on another scale than the legacy ones
+    prefilter_hybrid: PrefilterHybridCfg | None = None
+    ask: AskCfg = AskCfg()
+    momentum_window_hours: int = 24
     dedupe: DedupeCfg = DedupeCfg()
     cluster: ClusterCfg = ClusterCfg()
     cluster_overrides: dict[str, dict[str, float]] = {}
     relevance_cosine_scale: dict[str, tuple[float, float]] = {"fastembed": (0.45, 0.8), "mock": (0.0, 0.45)}
+    # When set for the embedder and topic centroids exist, relevance uses the centroids with this scale (ADR-026).
+    relevance_centroid_scale: dict[str, tuple[float, float]] = {}
     adjacent_tech_relevance_min: float = 0.6
     mmr_lambda: float = Field(0.7, ge=0, le=1)
     novelty_window_days: int = 14
@@ -178,6 +212,9 @@ class ScoringCfg(Strict):
 
     def cluster_for(self, embedder: str) -> ClusterCfg:
         return self.cluster.model_copy(update=self.cluster_overrides.get(embedder, {}))
+
+    def prefilter_min_for(self, embedder: str) -> float:
+        return self.prefilter_min_by_embedder.get(embedder, self.prefilter_min)
 
     def relevance_scale(self, embedder: str) -> tuple[float, float]:
         return tuple(self.relevance_cosine_scale.get(embedder, (0.0, 1.0)))  # type: ignore[return-value]

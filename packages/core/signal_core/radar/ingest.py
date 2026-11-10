@@ -64,12 +64,17 @@ async def load_profile(session: AsyncSession) -> tuple[list[ProfileVec], list[st
     p = (await session.execute(select(Profile).where(Profile.user_id == OWNER_ID))).scalar_one_or_none()
     if p is None:
         return [], [], []
+    from signal_core.services.seed import ensure_profile_vectors
+
+    await ensure_profile_vectors(session, p)
     kw: dict[str, list[str]] = {}
     for ring in ("core", "adjacent", "wide"):
         for t in (p.topics or {}).get(ring, []):
             kw[t["name"]] = list(t.get("keywords") or [])
     rows = (await session.execute(select(ProfileVector).where(ProfileVector.profile_id == p.id))).scalars()
-    vecs = [ProfileVec(r.label, r.ring, r.weight, list(r.embedding), kw.get(r.label, [])) for r in rows]
+    vecs = [
+        ProfileVec(r.label, r.ring, r.weight, list(r.embedding), kw.get(r.label, []), r.kind) for r in rows
+    ]
     return vecs, list(p.blocked_keywords or []), list(p.blocked_entities or [])
 
 
@@ -310,6 +315,8 @@ async def screen_new_items(session: AsyncSession, now: datetime) -> ScreenStats:
     if not pending:
         return st
     profile, blocked_kw, blocked_ent = await load_profile(session)
+    embedder = get_embedder().name
+    pf_min = cfg.prefilter_min_for(embedder)
     index = await SimhashIndex.load(session, now - timedelta(hours=cfg.dedupe.window_hours))
     for i in pending:
         st.screened += 1
@@ -340,13 +347,15 @@ async def screen_new_items(session: AsyncSession, now: datetime) -> ScreenStats:
                 profile,
                 blocked_kw,
                 blocked_ent,
+                cfg,
+                embedder,
             )
             i.prefilter_score = pf.score
             i.signal_meta = {
                 **(i.signal_meta or {}),
                 "prefilter": {"best": pf.best_label, "ring": pf.ring, "keywords": pf.keyword_hits[:8]},
             }
-            if pf.blocked or pf.score < cfg.prefilter_min:
+            if pf.blocked or pf.score < pf_min:
                 i.status = "prefiltered_out"
                 st.prefiltered_out += 1
             else:

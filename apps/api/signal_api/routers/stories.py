@@ -190,6 +190,7 @@ async def get_story(sid: uuid.UUID, _: CurrentUser, db: DB) -> dict[str, Any]:
                 "durability",
                 "actionability",
                 "learned",
+                "momentum",
             )
         },
     }

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -84,6 +85,15 @@ def signal_strength(members: list[dict[str, Any]]) -> float:
     return clamp(s)
 
 
+def momentum(members: list[dict[str, Any]], now: datetime, window_hours: int = 24) -> float:
+    """Source-count growth (ADR-026): distinct sources reporting in the last window minus those in the window
+    before, mapped to 0–1 (0.5 = flat, ≥ 0.75 = one more source than before, bounded at ±2 sources)."""
+    w = timedelta(hours=window_hours)
+    recent = {m["name"] for m in members if m["published_at"] and now - w < m["published_at"] <= now}
+    prior = {m["name"] for m in members if m["published_at"] and now - 2 * w < m["published_at"] <= now - w}
+    return clamp(0.5 + (len(recent) - len(prior)) / 4)
+
+
 def credibility(members: list[dict[str, Any]]) -> float:
     best = min(int(m["tier"]) for m in members)
     c = TIER_CRED.get(best, 0.45)
@@ -95,13 +105,21 @@ def credibility(members: list[dict[str, Any]]) -> float:
 
 
 async def profile_vectors(
-    session: AsyncSession,
+    session: AsyncSession, centroids: bool = False
 ) -> tuple[list[tuple[str, str, float, list[float]]], Profile | None]:
+    """Profile vectors for relevance: the topic/goal/stack text vectors, or (centroids=True) the keyword-seeded
+    topic centroids (ADR-026). Weights include the bounded feedback nudges."""
     p = (await session.execute(select(Profile).where(Profile.user_id == OWNER_ID))).scalar_one_or_none()
     if p is None:
         return [], None
+    from signal_core.services.seed import ensure_profile_vectors
+
+    await ensure_profile_vectors(session, p)
     eff = {t["name"]: effective_weight(t) for ring in (p.topics or {}).values() for t in ring}
-    rows = (await session.execute(select(ProfileVector).where(ProfileVector.profile_id == p.id))).scalars()
+    kind = ProfileVector.kind == "centroid" if centroids else ProfileVector.kind != "centroid"
+    rows = (
+        await session.execute(select(ProfileVector).where(ProfileVector.profile_id == p.id, kind))
+    ).scalars()
     return [(r.label, r.kind, eff.get(r.label, r.weight), list(r.embedding)) for r in rows], p
 
 
@@ -117,11 +135,99 @@ async def candidate_stories(session: AsyncSession, now: datetime, window_days: i
     )
 
 
+@dataclass
+class ScoreContext:
+    """Everything the deterministic pass needs besides the story itself (pure; the benchmark builds one too)."""
+
+    weights: dict[str, float]
+    pvs: list[tuple[str, str, float, list[float]]]  # (label, kind, effective weight, vector)
+    lo: float
+    hi: float
+    shown: list[Story] = field(default_factory=list)
+    blocked_kw: list[str] = field(default_factory=list)
+    blocked_ent: list[str] = field(default_factory=list)
+    adjacent_tech_min: float = 0.6
+    momentum_window_hours: int = 24
+
+
+def apply_scores(
+    s: Story, ms: list[dict[str, Any]], ctx: ScoreContext, learned: float, now: datetime
+) -> None:
+    """Pass 1 for one story: sub-scores, penalties, exclusion → s.scores and s.final_score (no I/O)."""
+    if not ms or s.centroid is None:
+        s.final_score, s.scores = -1.0, {"excluded": "no members"}
+        return
+    lo, hi, w = ctx.lo, ctx.hi, ctx.weights
+    sims = [(cosine(list(s.centroid), v) * min(wt, 1.5) / 1.0, lbl) for lbl, _k, wt, v in ctx.pvs]
+    best_vec = max((x for x, _ in sims), default=0.0)
+    rel_vec = scale(best_vec, lo, hi)
+    prefilter_best = max(float(m["prefilter_score"] or 0) for m in ms)
+    captured = any(m["is_capture"] for m in ms)
+    relevance = clamp(0.6 * rel_vec + 0.4 * min(1.0, prefilter_best * 2) + (0.15 if captured else 0))
+    others = [o for o in ctx.shown if o.id != s.id and o.centroid is not None]
+    nearest_shown = max((cosine(list(s.centroid), list(o.centroid)) for o in others), default=0.0)
+    novelty = clamp(1 - scale(nearest_shown, lo, hi))
+    penalties: list[str] = []
+    if s.last_shown_at and not (s.material_update_at and s.material_update_at > s.last_shown_at):
+        penalties.append("already shown")
+        novelty = 0.0
+    if (
+        s.followed
+        and s.material_update_at
+        and (not s.last_shown_at or s.material_update_at > s.last_shown_at)
+    ):
+        novelty = 1.0
+    prev_judge = (s.scores or {}).get("judge") or {}
+    sc = {
+        "relevance": round(relevance, 3),
+        "impact": float(prev_judge.get("impact", 0.5)),
+        "signal": round(signal_strength(ms), 3),
+        "novelty": round(novelty, 3),
+        "credibility": round(credibility(ms), 3),
+        "durability": DURABILITY.get(prev_judge.get("durability") or s.durability or "trend", 0.6),
+        "actionability": float(
+            max(
+                prev_judge.get("content_potential", 0.4),
+                prev_judge.get("build_potential", 0.3),
+                prev_judge.get("learn_potential", 0.3),
+            )
+        ),
+        "learned": round(learned, 3),
+        "momentum": round(momentum(ms, now, ctx.momentum_window_hours), 3),
+    }
+    if prev_judge:
+        sc["relevance"] = round(
+            clamp(0.5 * relevance + 0.5 * float(prev_judge.get("relevance", relevance))), 3
+        )
+    tech = max((float(m["tech_relevance"] or 0) for m in ms), default=0.0)
+    hay = (s.title + " " + " ".join(m["title"] for m in ms)).lower()
+    if any(k and k in hay for k in ctx.blocked_kw) or any(
+        e and e in " ".join(s.entity_names or []).lower() for e in ctx.blocked_ent
+    ):
+        penalties.append("blocked entity/topic")
+    final = sum(w[k] * sc.get(k, 0.0) for k in w)
+    final -= sum(1.0 for p in penalties)
+    excluded = None
+    if s.ring == "adjacent" and tech < ctx.adjacent_tech_min:
+        excluded = f"adjacent ring without tech relevance ≥ {ctx.adjacent_tech_min}"
+    s.scores = {
+        **sc,
+        "weights": w,
+        "penalties": penalties,
+        "excluded": excluded,
+        "tech_relevance": tech,
+        "matched_profile": max(sims, default=(0, None))[1],
+        "judge": prev_judge or None,
+        "sources": sorted({m["name"] for m in ms}),
+        "computed_at": now.isoformat(),
+    }
+    s.final_score = round(-1.0 if excluded else final, 4)
+
+
 async def score_stories(
     session: AsyncSession, now: datetime, run_id: uuid.UUID | None = None, judge: bool = True
 ) -> list[Story]:
     cfg = get_config().scoring
-    w = cfg.weights.model_dump()
     stories = await candidate_stories(session, now)
     if not stories:
         return []
@@ -129,84 +235,31 @@ async def score_stories(
     members = await _members(session, ids)
     pvs, prof = await profile_vectors(session)
     lo, hi = cfg.relevance_scale(get_embedder().name)
-    blocked_kw = [k.lower() for k in (prof.blocked_keywords if prof else [])]
-    blocked_ent = [e.lower() for e in (prof.blocked_entities if prof else [])]
-    shown = [
-        s
-        for s in stories
-        if s.last_shown_at and s.last_shown_at >= now - timedelta(days=cfg.novelty_window_days)
-    ]
+    cscale = cfg.relevance_centroid_scale.get(get_embedder().name)
+    if cscale is not None:  # centroids rank relevance better than topic-text vectors (ADR-026)
+        cents, _ = await profile_vectors(session, centroids=True)
+        if cents:
+            pvs, (lo, hi) = cents, cscale
+    ctx = ScoreContext(
+        weights=cfg.weights.model_dump(),
+        pvs=pvs,
+        lo=lo,
+        hi=hi,
+        shown=[
+            s
+            for s in stories
+            if s.last_shown_at and s.last_shown_at >= now - timedelta(days=cfg.novelty_window_days)
+        ],
+        blocked_kw=[k.lower() for k in (prof.blocked_keywords if prof else [])],
+        blocked_ent=[e.lower() for e in (prof.blocked_entities if prof else [])],
+        adjacent_tech_min=cfg.adjacent_tech_relevance_min,
+        momentum_window_hours=cfg.momentum_window_hours,
+    )
     learned = await learned_scores(session, ids)
 
     # Pass 1: deterministic sub-scores
     for s in stories:
-        ms = members.get(s.id, [])
-        if not ms or s.centroid is None:
-            s.final_score, s.scores = -1.0, {"excluded": "no members"}
-            continue
-        sims = [(cosine(list(s.centroid), v) * min(wt, 1.5) / 1.0, lbl) for lbl, _k, wt, v in pvs]
-        best_vec = max((x for x, _ in sims), default=0.0)
-        rel_vec = scale(best_vec, lo, hi)
-        prefilter_best = max(float(m["prefilter_score"] or 0) for m in ms)
-        captured = any(m["is_capture"] for m in ms)
-        relevance = clamp(0.6 * rel_vec + 0.4 * min(1.0, prefilter_best * 2) + (0.15 if captured else 0))
-        others = [o for o in shown if o.id != s.id and o.centroid is not None]
-        nearest_shown = max((cosine(list(s.centroid), list(o.centroid)) for o in others), default=0.0)
-        novelty = clamp(1 - scale(nearest_shown, lo, hi))
-        penalties: list[str] = []
-        if s.last_shown_at and not (s.material_update_at and s.material_update_at > s.last_shown_at):
-            penalties.append("already shown")
-            novelty = 0.0
-        if (
-            s.followed
-            and s.material_update_at
-            and (not s.last_shown_at or s.material_update_at > s.last_shown_at)
-        ):
-            novelty = 1.0
-        prev_judge = (s.scores or {}).get("judge") or {}
-        sc = {
-            "relevance": round(relevance, 3),
-            "impact": float(prev_judge.get("impact", 0.5)),
-            "signal": round(signal_strength(ms), 3),
-            "novelty": round(novelty, 3),
-            "credibility": round(credibility(ms), 3),
-            "durability": DURABILITY.get(prev_judge.get("durability") or s.durability or "trend", 0.6),
-            "actionability": float(
-                max(
-                    prev_judge.get("content_potential", 0.4),
-                    prev_judge.get("build_potential", 0.3),
-                    prev_judge.get("learn_potential", 0.3),
-                )
-            ),
-            "learned": round(learned.get(s.id, 0.5), 3),
-        }
-        if prev_judge:
-            sc["relevance"] = round(
-                clamp(0.5 * relevance + 0.5 * float(prev_judge.get("relevance", relevance))), 3
-            )
-        tech = max((float(m["tech_relevance"] or 0) for m in ms), default=0.0)
-        hay = (s.title + " " + " ".join(m["title"] for m in ms)).lower()
-        if any(k and k in hay for k in blocked_kw) or any(
-            e and e in " ".join(s.entity_names).lower() for e in blocked_ent
-        ):
-            penalties.append("blocked entity/topic")
-        final = sum(w[k] * sc[k] for k in w)
-        final -= sum(1.0 for p in penalties)
-        excluded = None
-        if s.ring == "adjacent" and tech < cfg.adjacent_tech_relevance_min:
-            excluded = f"adjacent ring without tech relevance ≥ {cfg.adjacent_tech_relevance_min}"
-        s.scores = {
-            **sc,
-            "weights": w,
-            "penalties": penalties,
-            "excluded": excluded,
-            "tech_relevance": tech,
-            "matched_profile": max(sims, default=(0, None))[1],
-            "judge": prev_judge or None,
-            "sources": sorted({m["name"] for m in ms}),
-            "computed_at": now.isoformat(),
-        }
-        s.final_score = round(-1.0 if excluded else final, 4)
+        apply_scores(s, members.get(s.id, []), ctx, learned.get(s.id, 0.5), now)
     await session.flush()
 
     # Pass 2: LLM judge (relevance/impact/durability/potentials) for the top-N, then rescore those.

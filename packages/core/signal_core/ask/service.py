@@ -10,6 +10,7 @@ Raw-material entries are private by default and only included when `ask.include_
 
 from __future__ import annotations
 
+import asyncio
 import re
 import uuid
 from dataclasses import dataclass
@@ -20,6 +21,8 @@ from dateutil import parser as dtparser
 from sqlalchemy import desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from signal_core.config import get_config
+from signal_core.config.schemas import AskCfg
 from signal_core.db.models import ChatMessage, ChatThread
 from signal_core.embeddings import get_embedder
 from signal_core.llm import router as llm
@@ -109,6 +112,41 @@ SOURCES_SQL = {
 }
 
 
+def fts_query(query: str, mode: str) -> str:
+    """websearch_to_tsquery input. 'all' ANDs every word (a long natural question rarely matches anything);
+    'any' ORs them and lets ts_rank order the matches."""
+    words = re.sub(r"[^\w\s-]", " ", query).split()
+    if mode == "any":
+        return " or ".join(w for w in words if w.lower() != "or")
+    return " ".join(words)
+
+
+_cross_encoders: dict[str, Any] = {}
+
+
+def _cross_encoder(model: str) -> Any:
+    if model not in _cross_encoders:
+        from fastembed.rerank.cross_encoder import TextCrossEncoder  # optional extra: local-embeddings
+
+        _cross_encoders[model] = TextCrossEncoder(model)
+    return _cross_encoders[model]
+
+
+async def rerank(query: str, chunks: list[Chunk], cfg: AskCfg) -> list[Chunk]:
+    """Local cross-encoder re-rank of the fused candidates (§11.1, ADR-026). Identity in mock mode, with the mock
+    embedder, when disabled, or when fastembed is not installed."""
+    if not cfg.rerank or len(chunks) < 2 or get_embedder().name == "mock":
+        return chunks
+    try:
+        model = _cross_encoder(cfg.rerank_model)
+    except ImportError:
+        return chunks
+    docs = [f"{c.title}\n{c.text[:1000]}" for c in chunks]
+    scores = await asyncio.to_thread(lambda: [float(x) for x in model.rerank(query, docs, batch_size=16)])
+    order = sorted(range(len(chunks)), key=lambda i: (-scores[i], i))
+    return [chunks[i] for i in order]
+
+
 async def retrieve(
     session: AsyncSession,
     query: str,
@@ -116,11 +154,14 @@ async def retrieve(
     k: int = 8,
     since: datetime | None = None,
     kinds: tuple[str, ...] | None = None,
+    cfg: AskCfg | None = None,
 ) -> list[Chunk]:
-    [vec] = await get_embedder().embed([query])
+    cfg = cfg or get_config().scoring.ask
+    emb = get_embedder()
+    [vec] = await emb.embed([cfg.query_prefix + query])
     v = str(list(vec))
     lists: list[list[Chunk]] = []
-    tsq = re.sub(r"[^\w\s-]", " ", query)
+    tsq = fts_query(query, cfg.fts_mode)
     for kind, (sql, _a) in SOURCES_SQL.items():
         if kinds and kind not in kinds:
             continue
@@ -151,7 +192,7 @@ async def retrieve(
         )
     ).all()
     if not kinds or "item" in kinds:
-        floor = 0.55 if get_embedder().name == "fastembed" else 0.12
+        floor = cfg.vector_floor.get(emb.name, 0.0)
         lists.append(
             [
                 Chunk(r.id, "item", r.title, r.body or "", r.url, r.at, float(r.sim))
@@ -167,7 +208,11 @@ async def retrieve(
             else:
                 c.score = 1 / (RRF_K + rank)
                 fused[c.id] = c
-    return sorted(fused.values(), key=lambda c: -c.score)[:k]
+    ranked = sorted(fused.values(), key=lambda c: -c.score)
+    if cfg.rerank:  # identity with the mock embedder, i.e. always in mock mode
+        top = await rerank(query, ranked[: cfg.rerank_candidates], cfg)
+        ranked = top + ranked[cfg.rerank_candidates :]
+    return ranked[:k]
 
 
 async def answer(

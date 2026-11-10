@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from signal_core.auth import hash_password
 from signal_core.config.schemas import AppConfig, SkillNode
 from signal_core.db.base import OWNER_ID
-from signal_core.db.models import Profile, ProfileVector, Routine, Skill, Source, User, VoiceProfile
+from signal_core.db.models import Item, Profile, ProfileVector, Routine, Skill, Source, User, VoiceProfile
 from signal_core.embeddings import get_embedder
+from signal_core.services.settings_store import get_setting, set_setting
+
+PROFILE_EMBEDDER_KEY = "profile_vectors.embedder"
 
 
 async def ensure_user(session: AsyncSession, email: str, password: str, tz: str) -> User:
@@ -51,22 +55,86 @@ def topic_text(topic: dict[str, Any]) -> str:
     return f"{topic['name'].replace('-', ' ')}: " + ", ".join(topic.get("keywords") or [])
 
 
+def profile_vector_rows(
+    topics: dict[str, Any], goals: list[str], stack: list[str]
+) -> list[tuple[str, str, str, float, str]]:
+    """(kind, label, ring, weight, text) for every interest-profile vector."""
+    rows: list[tuple[str, str, str, float, str]] = []
+    for ring in ("core", "adjacent", "wide"):
+        for tp in (topics or {}).get(ring, []):
+            rows.append(("topic", tp["name"], ring, float(tp.get("weight", 1.0)), topic_text(tp)))
+    for g in goals:
+        rows.append(("goal", g[:255], "core", 0.8, g))
+    if stack:
+        rows.append(("stack", "stack", "core", 0.6, "Tech stack: " + ", ".join(stack)))
+    return rows
+
+
 async def rebuild_profile_vectors(session: AsyncSession, p: Profile) -> None:
     await session.execute(delete(ProfileVector).where(ProfileVector.profile_id == p.id))
-    rows: list[tuple[str, str, str, float, str]] = []  # kind,label,ring,weight,text
-    for ring in ("core", "adjacent", "wide"):
-        for tp in (p.topics or {}).get(ring, []):
-            rows.append(("topic", tp["name"], ring, float(tp.get("weight", 1.0)), topic_text(tp)))
-    for g in p.goals:
-        rows.append(("goal", g[:255], "core", 0.8, g))
-    if p.stack:
-        rows.append(("stack", "stack", "core", 0.6, "Tech stack: " + ", ".join(p.stack)))
-    vecs = await get_embedder().embed([r[4] for r in rows]) if rows else []
+    rows = profile_vector_rows(p.topics, p.goals, p.stack)
+    emb = get_embedder()
+    vecs = await emb.embed([r[4] for r in rows]) if rows else []
     for (kind, label, ring, weight, _), v in zip(rows, vecs, strict=True):
         session.add(
             ProfileVector(profile_id=p.id, kind=kind, label=label, ring=ring, weight=weight, embedding=v)
         )
+    await set_setting(session, PROFILE_EMBEDDER_KEY, emb.name)
     await session.flush()
+    await rebuild_topic_centroids(session, p)
+
+
+async def rebuild_topic_centroids(session: AsyncSession, p: Profile, now: datetime | None = None) -> int:
+    """Keyword-seeded topic centroids for the hybrid prefilter (ADR-026), from recently fetched items. Runs after a
+    profile rebuild and nightly; topics with too few matching items keep only their text vector."""
+    from signal_core.config import get_config
+    from signal_core.radar.prefilter import CENTROID, keyword_centroids
+
+    hy = get_config().scoring.prefilter_hybrid
+    min_items, days = (hy.centroid_min_items, hy.centroid_days) if hy else (20, 180)
+    await session.execute(
+        delete(ProfileVector).where(ProfileVector.profile_id == p.id, ProfileVector.kind == CENTROID)
+    )
+    since = (now or datetime.now(UTC)) - timedelta(days=days)
+    rows = (
+        await session.execute(
+            select(Item.title, func.left(Item.text, 4000), Item.embedding).where(
+                Item.embedding.is_not(None), Item.duplicate_of.is_(None), Item.fetched_at >= since
+            )
+        )
+    ).all()
+    topics = [
+        (t["name"], ring, float(t.get("weight", 1.0)), list(t.get("keywords") or []))
+        for ring in ("core", "adjacent", "wide")
+        for t in (p.topics or {}).get(ring, [])
+    ]
+    cents = keyword_centroids(((r[0], r[1] or "", list(r[2])) for r in rows), topics, min_items)
+    for name, ring, weight, _kw in topics:
+        if name in cents:
+            session.add(
+                ProfileVector(
+                    profile_id=p.id,
+                    kind=CENTROID,
+                    label=name,
+                    ring=ring,
+                    weight=weight,
+                    embedding=cents[name],
+                )
+            )
+    await session.flush()
+    return len(cents)
+
+
+async def ensure_profile_vectors(session: AsyncSession, p: Profile) -> bool:
+    """Rebuild the profile vectors when they were made by another embedder than the one that embeds items.
+
+    Seeding in mock mode and then ingesting live left hashed bag-of-words profile vectors next to bge-small item
+    vectors: every cosine was ~0, so the prefilter's embedding half and the relevance score silently did nothing
+    (ADR-026). Returns True when it rebuilt."""
+    if await get_setting(session, PROFILE_EMBEDDER_KEY, "") == get_embedder().name:
+        return False
+    await rebuild_profile_vectors(session, p)
+    return True
 
 
 async def seed_sources(session: AsyncSession, cfg: AppConfig) -> int:

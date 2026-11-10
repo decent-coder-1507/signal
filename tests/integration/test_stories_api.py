@@ -63,6 +63,7 @@ async def test_story_page_has_timeline_insight_citations_and_why(client: httpx.A
         "durability",
         "actionability",
         "learned",
+        "momentum",
     }
 
 

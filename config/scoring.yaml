@@ -1,6 +1,14 @@
-weights: {relevance: 0.25, impact: 0.15, signal: 0.15, novelty: 0.10,
-          credibility: 0.10, durability: 0.10, actionability: 0.10, learned: 0.05}
+# Refit on the real-data benchmark (ADR-026): only relevance/signal/credibility/momentum were free (sum 0.50, each
+# ≥ 0.05 except momentum); judge-driven weights unchanged. Held-out NDCG@10 0.65 → 0.68. Was relevance 0.25,
+# signal 0.15, credibility 0.10. Momentum is computed and shown but did not help on this benchmark, so weight 0.
+weights: {relevance: 0.40, impact: 0.15, signal: 0.05, novelty: 0.10,
+          credibility: 0.05, durability: 0.10, actionability: 0.10, learned: 0.05, momentum: 0.0}
 prefilter_min: 0.25
+# Hybrid prefilter (ADR-026): w·scale(cosine to keyword-seeded topic centroids) + (1−w)·min(1, 2·keyword score).
+# Chosen on the real-data benchmark (fixtures/bench): AUC 0.81 vs 0.76 keywords-only; at 0.55 the estimated corpus
+# recall of relevant items is 0.82 (deployed: 0.22) at a 48% pass rate. Embedders without a scale keep the legacy score.
+prefilter_min_by_embedder: {fastembed: 0.55}
+prefilter_hybrid: {embedding_weight: 0.6, cosine_scale: {fastembed: [0.60, 0.80]}, centroid_min_items: 20, centroid_days: 180}
 dedupe: {simhash_max_distance: 3, embedding_cosine: 0.95, window_hours: 72}
 cluster: {join_threshold: 0.82, merge_threshold: 0.88, window_days: 7, min_entity_overlap: 1}
 # Thresholds depend on the embedding model (ADR-015). Calibrated on the fixture corpus 2026-11-06:
@@ -8,8 +16,13 @@ cluster: {join_threshold: 0.82, merge_threshold: 0.88, window_days: 7, min_entit
 #   mock (hashed bag of words): same-event median 0.72 / min 0.37, different events p95 0.16.
 cluster_overrides:
   mock: {join_threshold: 0.42, merge_threshold: 0.6}
+  # Calibrated by F1 on 210 Claude-labelled real pairs (ADR-026): with normalised entity tags and the same-feed rule,
+  # pairwise F1 0.59 (0.82/0.88, old entity rule) → 0.84. Join stays 0.82; merge 0.88 → 0.84.
+  fastembed: {join_threshold: 0.82, merge_threshold: 0.84, same_source_join_threshold: 0.90}
 # Map raw cosine(story centroid, profile vector) onto 0–1 relevance per embedder: [cos_at_0, cos_at_1].
 relevance_cosine_scale: {fastembed: [0.45, 0.80], mock: [0.0, 0.45]}
+# With keyword-seeded topic centroids (ADR-026) relevance uses them instead; benchmark NDCG@10 0.57 → 0.65.
+relevance_centroid_scale: {fastembed: [0.65, 0.85]}
 adjacent_tech_relevance_min: 0.6
 mmr_lambda: 0.7
 novelty_window_days: 14

@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from signal_core.config import get_config
@@ -50,8 +51,13 @@ async def process(
 
 
 async def nightly(session: AsyncSession, now: datetime, run_id: uuid.UUID | None = None) -> dict[str, Any]:
+    from signal_core.db.base import OWNER_ID
+    from signal_core.db.models import Profile
     from signal_core.radar.preference import retrain
+    from signal_core.services.seed import rebuild_topic_centroids
 
     merged = await merge_pass(session, now, run_id)
     pm = await retrain(session)
-    return {"merged": merged, "preference_model": pm.version if pm else None}
+    prof = (await session.execute(select(Profile).where(Profile.user_id == OWNER_ID))).scalar_one_or_none()
+    centroids = await rebuild_topic_centroids(session, prof, now) if prof is not None else 0
+    return {"merged": merged, "preference_model": pm.version if pm else None, "topic_centroids": centroids}
