@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { CostsTab, DeadLettersTab, EvalsTab, HealthTab, LedgerTab, RunsTab, SourceHealthTab } from "@/components/ops/tabs";
+import { QualityTab } from "@/components/ops/quality-tab";
 import { PageTitle } from "@/components/shell";
 import { TabPanel, Tabs } from "@/components/ui/tabs";
 
@@ -12,6 +13,7 @@ const TABS = [
   { id: "ledger", label: "LLM ledger" },
   { id: "costs", label: "Costs" },
   { id: "evals", label: "Evals" },
+  { id: "quality", label: "Engine quality" },
   { id: "sources", label: "Source health" },
   { id: "dead", label: "Dead letters" },
 ] as const;
@@ -32,6 +34,7 @@ function OpsInner() {
         {tab === "ledger" && <LedgerTab />}
         {tab === "costs" && <CostsTab />}
         {tab === "evals" && <EvalsTab />}
+        {tab === "quality" && <QualityTab />}
         {tab === "sources" && <SourceHealthTab />}
         {tab === "dead" && <DeadLettersTab />}
       </TabPanel>
@@ -42,7 +45,7 @@ function OpsInner() {
 export default function OpsPage() {
   return (
     <div className="mx-auto max-w-6xl">
-      <PageTitle sub="Runs, LLM ledger, costs, evals and source health">Ops</PageTitle>
+      <PageTitle sub="Runs, LLM ledger, costs, evals, engine quality and source health">Ops</PageTitle>
       <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
         <OpsInner />
       </Suspense>

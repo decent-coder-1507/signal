@@ -345,7 +345,7 @@ function Wizard({
               </div>
               <div className="rounded-xl border border-border bg-surface p-3.5 text-sm">
                 <p className="font-medium">Channels</p>
-                <p className="mt-1 text-muted">The brief always appears here in the app. Telegram: connect later from Settings.</p>
+                <p className="mt-1 text-muted">The brief always appears here in the app. Turn on browser notifications later in Settings → Channels.</p>
               </div>
             </>
           )}

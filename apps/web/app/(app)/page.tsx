@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { ArrowUpRight, Check, Flame, RefreshCw, Snowflake, Timer } from "lucide-react";
 import Link from "next/link";
 import { CaptureBox } from "@/components/capture-box";
+import { InstallCard } from "@/components/in-app";
 import { PageTitle, useMe } from "@/components/shell";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClass } from "@/components/ui/button";
@@ -59,6 +60,9 @@ export default function TodayPage() {
           </Link>
         </p>
       )}
+      <div className="mb-3.5 empty:hidden">
+        <InstallCard />
+      </div>
       {today.isLoading && <p className="text-sm text-muted">Loading…</p>}
       {t && (
         <div className="grid grid-flow-row-dense grid-cols-2 gap-3.5 lg:grid-cols-4">

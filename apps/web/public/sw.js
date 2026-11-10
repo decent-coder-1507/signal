@@ -2,6 +2,7 @@
  * - static assets (/_next/static, icons, manifest, fonts): cache-first
  * - pages (navigations): network-first, cached copy as offline fallback
  * - /api/*: never cached (personal data, always live)
+ * - notification clicks (local browser notifications, ADR-027): focus an open SIGNAL window or open the target
  * Registered with ?dev=1 under `next dev`, where asset URLs are not content-hashed: assets then go network-first.
  */
 const VERSION = "signal-v1";
@@ -71,4 +72,17 @@ self.addEventListener("fetch", (event) => {
   if (req.mode === "navigate") {
     event.respondWith(networkFirst(req, PAGES));
   }
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin);
+  if (target.origin !== self.location.origin) return; // only ever navigate within SIGNAL
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      const win = wins.find((w) => new URL(w.url).origin === self.location.origin);
+      if (win) return win.focus().then((w) => (w && "navigate" in w ? w.navigate(target.href) : undefined));
+      return self.clients.openWindow(target.href);
+    }),
+  );
 });

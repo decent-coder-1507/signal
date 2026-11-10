@@ -11,6 +11,7 @@ import { CitationList } from "@/components/cited-text";
 import { CITE_RE, citationIndex, type CitationRef } from "@/lib/citations";
 import { errMsg } from "@/lib/hooks";
 import type { Explainer } from "@/lib/lab-types";
+import { ReportInaccuracy } from "@/components/report-inaccuracy";
 import { Markdown } from "@/lib/markdown";
 
 const DEPTHS = [
@@ -93,8 +94,13 @@ export function ExplainerPanel({
       {gen.error && <p role="alert" className="text-sm text-bad">{errMsg(gen.error)}</p>}
       {ex && (
         <Card data-testid="explainer">
-          <h2 className="tracking-tight text-xl font-semibold">{ex.topic}</h2>
-          <p className="mb-3 text-xs text-muted">{ex.depth} depth</p>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="tracking-tight text-xl font-semibold">{ex.topic}</h2>
+              <p className="mb-3 text-xs text-muted">{ex.depth} depth</p>
+            </div>
+            <ReportInaccuracy targetType="explainer" targetId={ex.id} context={{ topic: ex.topic, depth: ex.depth }} />
+          </div>
           <Markdown source={numberCitations(ex.body, index)} />
           {index.size > 0 && (
             <div className="mt-3" data-testid="explainer-sources">

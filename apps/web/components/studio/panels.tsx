@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { useState } from "react";
+import { ReportInaccuracy } from "@/components/report-inaccuracy";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { get } from "@/lib/api";
@@ -167,7 +168,10 @@ export function ScorePanel({
         </Card>
       )}
       <Card data-testid="factcheck">
-        <h2 className="label">Fact-check</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="label">Fact-check</h2>
+          <ReportInaccuracy targetType="draft" targetId={draft.id} context={{ block: "factcheck", version_id: v.id }} />
+        </div>
         {!fc || (!fc.results.length && !fc.uncited_sentences.length) ? (
           <p className="mt-1 text-sm text-muted">No factual claims to check.</p>
         ) : (

@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { CitationList, CitedText } from "@/components/cited-text";
+import { BriefProvenance } from "@/components/brief-provenance";
+import { ReportInaccuracy } from "@/components/report-inaccuracy";
 import { PageTitle } from "@/components/shell";
 import { StoryActionBar, useStoryAction } from "@/components/story-actions";
 import { StoryBadges } from "@/components/story-badges";
@@ -203,6 +205,7 @@ function BriefView({ brief }: { brief: Brief }) {
           <li key={s.story_id}>
             <StoryCardView
               story={s}
+              briefId={brief.id}
               rank={c.stories.indexOf(s) + 1}
               focused={nav.index === i}
               marked={marked[s.story_id]}
@@ -314,6 +317,8 @@ function BriefView({ brief }: { brief: Brief }) {
           </Button>
         </div>
       </div>
+
+      <BriefProvenance briefId={brief.id} />
     </div>
   );
 }
@@ -328,6 +333,7 @@ const HINTS: [string, string][] = [
 
 function StoryCardView({
   story: s,
+  briefId,
   rank,
   focused,
   marked,
@@ -336,6 +342,7 @@ function StoryCardView({
   cardRef,
 }: {
   story: BriefStory;
+  briefId: string;
   rank: number;
   focused: boolean;
   marked?: FeedbackKind;
@@ -438,14 +445,19 @@ function StoryCardView({
           </p>
         )}
       </div>
-      {idx.size > 0 && (
-        <details className="mt-3 text-sm">
-          <summary className="cursor-pointer text-xs text-muted hover:text-text">Sources ({idx.size})</summary>
-          <div className="mt-2">
-            <CitationList index={idx} />
-          </div>
-        </details>
-      )}
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
+        {idx.size > 0 ? (
+          <details className="min-w-0 flex-1 text-sm">
+            <summary className="cursor-pointer py-1.5 text-xs text-muted hover:text-text">Sources ({idx.size})</summary>
+            <div className="mt-2">
+              <CitationList index={idx} />
+            </div>
+          </details>
+        ) : (
+          <span />
+        )}
+        <ReportInaccuracy targetType="story" targetId={s.story_id} context={{ brief_id: briefId, block: "brief_card" }} />
+      </div>
     </article>
   );
 }
