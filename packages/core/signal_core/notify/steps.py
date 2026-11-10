@@ -11,14 +11,48 @@ from signal_core.db.models import Brief
 from signal_core.notify.dispatcher import dispatch, flush_queued
 from signal_core.routines.engine import StepContext, step
 
+BRIEF_TITLES = {
+    "daily": "Your daily brief is ready",
+    "weekend": "Your weekend brief is ready",
+    "catchup": "While you were away: your catch-up brief is ready",
+}
+
+
+async def _in_app(ctx: StepContext, brief_id: str | None, review: dict[str, Any] | None) -> dict[str, str]:
+    """In-app channel (ADR-027): a small 'ready' notification the bell and browser notifications pick up."""
+    outs = ctx.outputs
+    if brief_id:
+        b = await ctx.session.get(Brief, uuid.UUID(brief_id))
+        if b is not None:
+            title = BRIEF_TITLES.get(b.kind, "Your brief is ready")
+            n = len(b.content.get("stories", []))
+            payload = {"brief_id": brief_id, "title": f"{title} ({n} stories)" if n else title}
+            await dispatch(ctx.session, "app", "brief", payload, ctx.now)
+            return {"app:brief": "sent"}
+    elif "cards_due_check" in outs and outs["cards_due_check"].get("due", 0) > 0:
+        due = int(outs["cards_due_check"]["due"])
+        await dispatch(
+            ctx.session, "app", "cards", {"due": due, "title": f"{due} cards due for review"}, ctx.now
+        )
+        return {"app:cards": "sent"}
+    elif review and review.get("brief_id"):
+        b = await ctx.session.get(Brief, uuid.UUID(review["brief_id"]))
+        if b is not None:
+            payload = {"brief_id": str(b.id), "title": f"Your {b.kind} review is ready"}
+            await dispatch(ctx.session, "app", b.kind, payload, ctx.now)
+            return {f"app:{b.kind}": "sent"}
+    return {}
+
 
 async def deliver(ctx: StepContext) -> dict[str, Any]:
     """Called by the engine after a routine's steps: push the outputs to the routine's channels."""
     sent: dict[str, str] = {}
     outs = ctx.outputs
-    channels = [c for c in ctx.routine.channels or [] if c != "app"]
     brief_id = (outs.get("assemble_brief") or {}).get("brief_id")
     review = outs.get("weekly_recap") or outs.get("state_of_tech")
+    if "app" in (ctx.routine.channels or []):
+        sent.update(await _in_app(ctx, brief_id, review))
+    channels = [c for c in ctx.routine.channels or [] if c != "app"]
     for ch in channels:
         if brief_id:
             b = await ctx.session.get(Brief, uuid.UUID(brief_id))

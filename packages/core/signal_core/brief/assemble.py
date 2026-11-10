@@ -232,6 +232,8 @@ async def assemble(
         "degraded": degraded,
         "since": since.isoformat(),
         "generated_at": now.isoformat(),
+        # Provenance ("How this brief was made"): what the selection saw, before MMR picked the top stories.
+        "stats": {"stories_considered": len(pool), "stories_eligible": len(eligible)},
     }
     brief = Brief(
         routine_run_id=run_id,

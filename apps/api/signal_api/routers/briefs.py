@@ -85,6 +85,17 @@ async def get_brief(bid: uuid.UUID, _: CurrentUser, db: DB) -> dict[str, Any]:
     return brief_out(b)
 
 
+@router.get("/briefs/{bid}/provenance")
+async def brief_provenance(bid: uuid.UUID, _: CurrentUser, db: DB) -> dict[str, Any]:
+    """'How this brief was made': sources, items, stories, AI calls/models, citations — from stored rows only."""
+    from signal_core.brief.provenance import brief_provenance as compute
+
+    b = await db.get(Brief, bid)
+    if b is None:
+        raise HTTPException(404, "brief not found")
+    return await compute(db, b)
+
+
 @router.post("/briefs/{bid}/open")
 async def open_brief(bid: uuid.UUID, _: CurrentUser, db: DB) -> dict[str, Any]:
     b = await db.get(Brief, bid)
