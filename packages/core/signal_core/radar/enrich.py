@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -14,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from signal_core.config import get_config
 from signal_core.db.base import OWNER_ID, uuid7
 from signal_core.db.models import Entity, Item, ItemEnrichment, ItemEntity, Source
+from signal_core.db.session import session_scope
 from signal_core.llm import router as llm
 from signal_core.llm.provider import BudgetExceeded, LLMUnavailable
 from signal_core.logging import get_logger
@@ -46,12 +48,14 @@ def _clip(text: str, words: int = TEXT_WORDS) -> str:
     return " ".join(w[:words])
 
 
-async def pending_items(session: AsyncSession, limit: int = 300) -> list[Item]:
+async def pending_items(session: AsyncSession, limit: int = 300, now: datetime | None = None) -> list[Item]:
+    """Captures first, then the last 48 h (what the next brief needs), then by prefilter score."""
+    fresh = Item.published_at >= (now or datetime.now(UTC)) - timedelta(hours=48)
     q = (
         select(Item)
         .outerjoin(ItemEnrichment, ItemEnrichment.item_id == Item.id)
         .where(Item.status == "new", Item.prefilter_score.is_not(None), ItemEnrichment.id.is_(None))
-        .order_by(Item.is_capture.desc(), Item.prefilter_score.desc().nulls_last())
+        .order_by(Item.is_capture.desc(), fresh.desc().nulls_last(), Item.prefilter_score.desc().nulls_last())
         .limit(limit)
     )
     return list((await session.execute(q)).scalars())
@@ -106,22 +110,29 @@ async def enrich_pending(
 ) -> EnrichStats:
     """Enrich pending items (or exactly `items`, used by the benchmark builder) in batches of BATCH."""
     st = EnrichStats()
-    items = await pending_items(session, limit) if items is None else items
+    items = await pending_items(session, limit, now) if items is None else items
     if not items:
         return st
     topics = enrich_topics()
     sources = {s.id: s for s in (await session.execute(select(Source))).scalars()}
     by_id = {str(i.id): i for i in items}
-    for k in range(0, len(items), BATCH):
-        batch = items[k : k + BATCH]
-        try:
-            res = await llm.call(
-                "enrich_items", enrich_inputs(batch, sources, topics), session=session, run_id=run_id
+    batches = [items[k : k + BATCH] for k in range(0, len(items), BATCH)]
+
+    async def call(batch: list[Item]) -> Any:
+        # Independent LLM calls run concurrently (the runner caps parallel `claude -p`); each on its own session.
+        async with session_scope() as s:
+            return await llm.call(
+                "enrich_items", enrich_inputs(batch, sources, topics), session=s, run_id=run_id
             )
-        except (LLMUnavailable, BudgetExceeded) as e:
-            log.warning("enrich_unavailable", error=str(e))
-            st.skipped_unavailable += len(items) - k
-            return st  # items stay 'new'; the brief degrades gracefully (§16.4)
+
+    results = await asyncio.gather(*(call(b) for b in batches), return_exceptions=True)
+    for batch, res in zip(batches, results, strict=True):
+        if isinstance(res, (LLMUnavailable, BudgetExceeded)):
+            log.warning("enrich_unavailable", error=str(res))
+            st.skipped_unavailable += len(batch)
+            continue  # items stay 'new'; the brief degrades gracefully (§16.4)
+        if isinstance(res, BaseException):
+            raise res
         st.batches += 1
         for out in res.output.items:
             item = by_id.get(out.item_id)
