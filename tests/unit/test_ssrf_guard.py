@@ -60,6 +60,7 @@ def test_nat64_addresses_are_judged_by_their_embedded_ipv4() -> None:
     assert _ip_is_public("64:ff9b::14cf:4952")  # 20.207.73.82 (github.com)
     assert not _ip_is_public("64:ff9b::a00:1")  # 10.0.0.1
     assert not _ip_is_public("64:ff9b::7f00:1")  # 127.0.0.1
+    assert not _ip_is_public("64:ff9b:1::a00:1")  # local-use NAT64 prefix: layout not fixed, stays blocked
 
 
 @respx.mock

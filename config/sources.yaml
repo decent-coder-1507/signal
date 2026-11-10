@@ -52,7 +52,7 @@ sources:
   - {type: rss, name: MediaNama, url: "https://www.medianama.com/feed/", tier: 2, ring: adjacent, topics: [ai-policy-regulation, india-tech-ecosystem], fetch_every: 2h}
   # ---- Podcasts / video ----
   - {type: podcast, name: Practical AI, url: "https://changelog.com/practicalai/feed", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 1d}
-  - {type: youtube, name: Andrej Karpathy (YouTube), url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 1d, terms_note: "summaries from description; transcripts only where permitted"}
+  - {type: youtube, name: Andrej Karpathy (YouTube), url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCXUPKJO5MZQN11PqgIvyuvQ", tier: 2, ring: core, topics: [ai-engineering], fetch_every: 1d, terms_note: "summaries from description; transcripts only where permitted"}
   # ---- APIs ----
   - {type: hn, name: Hacker News Top, endpoint: topstories, min_points: 80, limit: 200, tier: 3, ring: core, fetch_every: 30m}
   - {type: hn, name: Hacker News Best, endpoint: beststories, min_points: 150, limit: 200, tier: 3, ring: core, fetch_every: 2h}

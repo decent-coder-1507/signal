@@ -24,7 +24,8 @@ RETRY_STATUS = {429, 500, 502, 503, 504}
 MAX_REDIRECTS = 5
 
 
-NAT64_PREFIXES = (ipaddress.ip_network("64:ff9b::/96"), ipaddress.ip_network("64:ff9b:1::/48"))
+# Only the well-known NAT64 prefix has a fixed /96 layout (RFC 6052); local-use 64:ff9b:1::/48 stays blocked.
+NAT64_WKP = ipaddress.ip_network("64:ff9b::/96")
 REDIRECT_CODES = {301, 302, 303, 307, 308}
 
 
@@ -36,9 +37,9 @@ def _ip_is_public(ip: str) -> bool:
     a: ipaddress.IPv4Address | ipaddress.IPv6Address = ipaddress.ip_address(ip.split("%", 1)[0])
     if isinstance(a, ipaddress.IPv6Address) and a.ipv4_mapped:
         a = a.ipv4_mapped
-    if isinstance(a, ipaddress.IPv6Address) and any(a in n for n in NAT64_PREFIXES):
-        # NAT64/DNS64 (RFC 6052 / 8215): IPv6-only networks reach IPv4 sites via 64:ff9b::<ipv4>. Judge the
-        # embedded IPv4 instead of treating every NAT64 address as internal.
+    if isinstance(a, ipaddress.IPv6Address) and a in NAT64_WKP:
+        # NAT64/DNS64 (RFC 6052): IPv6-only networks reach IPv4 sites via 64:ff9b::<ipv4>. Judge the embedded
+        # IPv4 instead of treating every NAT64 address as internal.
         a = ipaddress.IPv4Address(int(a) & 0xFFFFFFFF)
     internal = (
         a.is_private
