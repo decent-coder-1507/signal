@@ -24,6 +24,10 @@ RETRY_STATUS = {429, 500, 502, 503, 504}
 MAX_REDIRECTS = 5
 
 
+NAT64_PREFIXES = (ipaddress.ip_network("64:ff9b::/96"), ipaddress.ip_network("64:ff9b:1::/48"))
+REDIRECT_CODES = {301, 302, 303, 307, 308}
+
+
 class BlockedURL(PermissionError):
     """URL rejected by the SSRF guard (non-http scheme, or a host resolving to a private/internal address)."""
 
@@ -32,6 +36,10 @@ def _ip_is_public(ip: str) -> bool:
     a: ipaddress.IPv4Address | ipaddress.IPv6Address = ipaddress.ip_address(ip.split("%", 1)[0])
     if isinstance(a, ipaddress.IPv6Address) and a.ipv4_mapped:
         a = a.ipv4_mapped
+    if isinstance(a, ipaddress.IPv6Address) and any(a in n for n in NAT64_PREFIXES):
+        # NAT64/DNS64 (RFC 6052 / 8215): IPv6-only networks reach IPv4 sites via 64:ff9b::<ipv4>. Judge the
+        # embedded IPv4 instead of treating every NAT64 address as internal.
+        a = ipaddress.IPv4Address(int(a) & 0xFFFFFFFF)
     internal = (
         a.is_private
         or a.is_loopback
@@ -171,7 +179,8 @@ class PoliteClient:
     async def _get_validated(self, url: str, **kw: Any) -> httpx.Response:
         for _ in range(MAX_REDIRECTS + 1):
             resp = await self._get(url, **kw)
-            if not resp.is_redirect:
+            # httpx counts 304 Not Modified as a "redirect"; only real redirects with a Location are followed.
+            if resp.status_code not in REDIRECT_CODES or "location" not in resp.headers:
                 return resp
             url = urljoin(url, resp.headers.get("location", ""))
             await assert_public_url(url)
