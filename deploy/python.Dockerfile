@@ -32,5 +32,8 @@ COPY config ./config
 COPY prompts ./prompts
 COPY alembic.ini ./
 RUN --mount=type=cache,target=/root/.cache/uv     uv sync --frozen --all-packages --extra local-embeddings --no-dev
-RUN useradd -m signal && mkdir -p /app/data && chown -R signal /app /ms-playwright
+# The claude_home volume inherits /home/signal/.claude's ownership when first created; a root-owned mount made
+# `claude /login` unable to save credentials.
+RUN useradd -m signal && mkdir -p /app/data /home/signal/.claude \
+ && chown -R signal /app /ms-playwright /home/signal/.claude && chmod 700 /home/signal/.claude
 USER signal
