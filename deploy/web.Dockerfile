@@ -1,5 +1,8 @@
 # syntax=docker/dockerfile:1
 FROM node:24-slim AS build
+# Next bakes rewrite destinations in at build time, so the API address must be known here, not only at runtime.
+ARG SIGNAL_API_URL=http://api:8710
+ENV SIGNAL_API_URL=${SIGNAL_API_URL}
 RUN corepack enable
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
