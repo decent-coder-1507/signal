@@ -24,6 +24,8 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import { BrowserNotifier } from "./in-app";
+import { DefaultPasswordBanner, ModeBadge } from "./mode-badge";
 import { NotificationBell } from "./notification-bell";
 import { openSearch, SearchPalette } from "./search-palette";
 import { ThemeCycleButton, ThemeToggle } from "./theme-toggle";
@@ -35,6 +37,7 @@ export type Me = {
   onboarded: boolean;
   totp_enabled: boolean;
   has_api_token?: boolean;
+  default_password?: boolean;
 };
 
 const NAV: { href: string; label: string; icon: LucideIcon }[] = [
@@ -85,7 +88,7 @@ export function Shell({ children }: { children: ReactNode }) {
         aria-label="Main"
         className="sticky top-0 flex h-dvh flex-col gap-0.5 overflow-y-auto px-3 py-5"
       >
-        <div className="mb-5 flex items-center justify-between pl-2">
+        <div className="mb-2 flex items-center justify-between pl-2">
           <Link href="/" className="flex items-center gap-2 text-[17px] font-bold tracking-tight">
             <Logo />
             Signal
@@ -102,6 +105,9 @@ export function Shell({ children }: { children: ReactNode }) {
             </button>
             <NotificationBell />
           </span>
+        </div>
+        <div className="mb-4 pl-2">
+          <ModeBadge />
         </div>
         {NAV.map((n) => {
           const on = active(n.href);
@@ -147,10 +153,13 @@ export function Shell({ children }: { children: ReactNode }) {
       </div>
       <main className="relative min-w-0 flex-1 px-4 pb-28 pt-16 md:px-8 md:pb-12 md:pt-8 lg:px-10">
         <div className="absolute inset-x-0 top-0 z-30 flex h-12 items-center justify-between border-b border-[var(--sidebar-border)] bg-sidebar px-4 md:hidden">
-          <Link href="/" className="flex items-center gap-2 text-[15px] font-bold tracking-tight">
-            <Logo size={18} />
-            Signal
-          </Link>
+          <span className="flex min-w-0 items-center gap-2">
+            <Link href="/" className="flex items-center gap-2 text-[15px] font-bold tracking-tight">
+              <Logo size={18} />
+              Signal
+            </Link>
+            <ModeBadge compact />
+          </span>
           <span className="flex items-center">
             <ThemeCycleButton />
             <button type="button" aria-label="Search" onClick={openSearch} className="rounded-md p-1.5 text-muted hover:bg-surface-2">
@@ -159,9 +168,13 @@ export function Shell({ children }: { children: ReactNode }) {
             <NotificationBell />
           </span>
         </div>
-        <div className="mx-auto max-w-[84rem]">{children}</div>
+        <div className="mx-auto max-w-[84rem]">
+          <DefaultPasswordBanner show={!!me.data?.default_password} />
+          {children}
+        </div>
       </main>
       <SearchPalette />
+      <BrowserNotifier />
       <nav
         aria-label="Mobile"
         className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-[var(--sidebar-border)] bg-sidebar px-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] pt-1.5 md:hidden"

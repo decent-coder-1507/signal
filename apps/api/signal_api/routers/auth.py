@@ -14,6 +14,7 @@ from signal_core.auth import (
     LoginError,
     authenticate,
     hash_api_token,
+    hash_password,
     make_session_token,
     new_api_token,
     new_totp_secret,
@@ -21,21 +22,31 @@ from signal_core.auth import (
     verify_totp,
 )
 from signal_core.db.models import User
-from signal_core.settings import get_settings
+from signal_core.settings import PLACEHOLDER_PASSWORDS, get_settings
 
 router = APIRouter(tags=["auth"])
 
 _attempts: dict[str, deque[float]] = defaultdict(deque)
 RATE_WINDOW_S, RATE_MAX = 60.0, 10
+MIN_PASSWORD_LEN = 12
+_default_pw: dict[str, bool] = {}  # password_hash → "is the seeded placeholder" (argon2 verify is slow)
 
 
-def _rate_limit(ip: str) -> None:
+def _rate_limit(ip: str, what: str = "login") -> None:
     q, now = _attempts[ip], time.monotonic()
     while q and now - q[0] > RATE_WINDOW_S:
         q.popleft()
     if len(q) >= RATE_MAX:
-        raise HTTPException(429, "too many login attempts; wait a minute")
+        raise HTTPException(429, f"too many {what} attempts; wait a minute")
     q.append(now)
+
+
+def uses_default_password(user: User) -> bool:
+    """True while the admin password is still a seeded placeholder (e.g. `change-me-now` from .env.example)."""
+    h = user.password_hash
+    if h not in _default_pw:
+        _default_pw[h] = any(verify_password(h, pw) for pw in PLACEHOLDER_PASSWORDS)
+    return _default_pw[h]
 
 
 class LoginIn(BaseModel):
@@ -96,6 +107,7 @@ async def me(user: CurrentUser) -> dict[str, object]:
         "totp_enabled": bool(user.totp_secret),
         "has_api_token": bool(user.api_token_hash),
         "onboarded": user.onboarded_at is not None,
+        "default_password": uses_default_password(user),
     }
 
 
@@ -143,3 +155,27 @@ async def rotate_api_token(body: ReauthIn, request: Request, user: CurrentUser, 
     user.api_token_hash = hash_api_token(token)
     await db.flush()
     return {"token": token}
+
+
+class PasswordIn(BaseModel):
+    current_password: str
+    new_password: str
+    current_totp: str | None = None
+
+
+@router.post("/auth/password")
+async def change_password(body: PasswordIn, request: Request, user: CurrentUser, db: DB) -> dict[str, bool]:
+    """Change the admin password: browser session + current password (+ 2FA code when on), rate-limited like
+    login. The new password needs ≥ 12 characters and cannot be a seeded placeholder."""
+    _rate_limit(request.client.host if request.client else "?", "password")
+    require_reauth(request, user, ReauthIn(password=body.current_password, current_totp=body.current_totp))
+    new = body.new_password
+    if len(new) < MIN_PASSWORD_LEN:
+        raise HTTPException(422, f"new password must be at least {MIN_PASSWORD_LEN} characters")
+    if new in PLACEHOLDER_PASSWORDS:
+        raise HTTPException(422, "choose a password other than the placeholder")
+    if new == body.current_password:
+        raise HTTPException(422, "new password must differ from the current one")
+    user.password_hash = hash_password(new)
+    await db.flush()
+    return {"ok": True}

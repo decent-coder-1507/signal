@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { CitationList, CitedText } from "@/components/cited-text";
+import { ReportInaccuracy } from "@/components/report-inaccuracy";
 import { PageTitle } from "@/components/shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -313,6 +314,11 @@ function Answer({ m }: { m: Msg }) {
               {t[0].toUpperCase() + t.slice(1)}
             </Button>
           ))}
+        </div>
+      )}
+      {m.id && !m.streaming && (
+        <div className="mt-1 flex justify-end">
+          <ReportInaccuracy targetType="answer" targetId={m.id} context={{ mode: m.mode ?? null }} />
         </div>
       )}
     </article>

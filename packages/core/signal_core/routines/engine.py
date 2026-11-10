@@ -114,7 +114,7 @@ async def execute(
             status = "degraded"
             ctx.log(f"step {name}: ERROR {e.__class__.__name__}: {e}")
             log.warning("step_failed", routine=routine.name, step=name, error=str(e))
-    if [c for c in routine.channels or [] if c != "app"]:
+    if routine.channels:
         try:
             from signal_core.notify.steps import deliver
 

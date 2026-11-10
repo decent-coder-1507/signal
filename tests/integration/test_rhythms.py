@@ -116,6 +116,8 @@ async def test_every_default_routine_runs_on_schedule(
     routines = list((await seeded.execute(select(Routine))).scalars())
     for r in routines:
         r.created_at, r.last_run_at = base, base
+        if r.name == "daily_brief":  # Telegram is off the product surface (ADR-027); the adapter stays tested
+            r.channels = ["app", "telegram"]
     await seeded.commit()
     # Simulate the next 8 days (quarterly reset on 1 Jan is out of range and would replay everything in between).
     schedule = sorted(
@@ -142,6 +144,11 @@ async def test_every_default_routine_runs_on_schedule(
     # Delivery: daily brief went to Telegram (mock server) and the weekly review to email (outbox).
     assert any("stories" in t for t in tg.texts())
     assert list(outbox.glob("*-weekly.eml")) and list(outbox.glob("*-monthly.eml"))
+    # In-app (ADR-027): every brief/review routine leaves a small "ready" notification for the bell + browser.
+    app = (await seeded.execute(select(Notification).where(Notification.channel == "app"))).scalars().all()
+    kinds = {n.kind for n in app}
+    assert {"brief", "weekly", "monthly"} <= kinds, kinds
+    assert all(n.payload.get("title") for n in app if n.kind in ("brief", "weekly", "monthly"))
 
 
 async def test_telegram_commands_against_mock_server(seeded: AsyncSession, tg: FakeTelegram) -> None:

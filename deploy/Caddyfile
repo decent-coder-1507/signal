@@ -1,11 +1,6 @@
 # VPS: set SIGNAL_DOMAIN in the environment; Caddy obtains HTTPS certificates automatically.
 {$SIGNAL_DOMAIN} {
 	encode zstd gzip
-	@telegram path /api/telegram/webhook
-	handle @telegram {
-		uri strip_prefix /api
-		reverse_proxy api:8710
-	}
 	reverse_proxy web:3710
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

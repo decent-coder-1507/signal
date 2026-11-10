@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Copy, KeyRound, ShieldCheck } from "lucide-react";
+import { Copy, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useMe } from "@/components/shell";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,90 @@ import { errMsg } from "@/lib/hooks";
 export function SecurityTab() {
   return (
     <div className="space-y-4">
+      <ChangePassword />
       <ApiToken />
       <Totp />
     </div>
+  );
+}
+
+const MIN_PASSWORD = 12;
+
+function ChangePassword() {
+  const me = useMe();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [code, setCode] = useState("");
+  const problem =
+    next && next.length < MIN_PASSWORD
+      ? `At least ${MIN_PASSWORD} characters.`
+      : confirm && next !== confirm
+        ? "The two new passwords don't match."
+        : null;
+  const change = useMutation({
+    mutationFn: () =>
+      post("/auth/password", {
+        current_password: current,
+        new_password: next,
+        current_totp: me.data?.totp_enabled ? code : null,
+      }),
+    onSuccess: () => {
+      toast("Password changed", "good");
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+      setCode("");
+      qc.invalidateQueries({ queryKey: ["me"] });
+    },
+    onError: (e) => toast(errMsg(e), "bad"),
+  });
+  return (
+    <Card>
+      <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+        <LockKeyhole size={16} aria-hidden /> Password
+      </h2>
+      {me.data?.default_password && (
+        <p className="mt-1 text-sm text-warn" data-testid="default-password-note">
+          You&apos;re still using the default password from <code>.env.example</code>. Change it now.
+        </p>
+      )}
+      <form
+        aria-label="Change password"
+        className="mt-3 grid gap-3 sm:grid-cols-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!problem) change.mutate();
+        }}
+      >
+        <Field label="Current password" className="sm:col-span-2">
+          <input type="password" autoComplete="current-password" className={inputClass} value={current} onChange={(e) => setCurrent(e.target.value)} required />
+        </Field>
+        <Field label="New password" hint={`At least ${MIN_PASSWORD} characters.`}>
+          <input type="password" autoComplete="new-password" minLength={MIN_PASSWORD} className={inputClass} value={next} onChange={(e) => setNext(e.target.value)} required />
+        </Field>
+        <Field label="Repeat new password">
+          <input type="password" autoComplete="new-password" className={inputClass} value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+        </Field>
+        {me.data?.totp_enabled && (
+          <Field label="Authenticator code">
+            <input inputMode="numeric" className={inputClass + " w-32"} value={code} onChange={(e) => setCode(e.target.value)} required />
+          </Field>
+        )}
+        {problem && (
+          <p role="alert" className="text-sm text-bad sm:col-span-2">
+            {problem}
+          </p>
+        )}
+        <div className="sm:col-span-2">
+          <Button type="submit" variant="primary" disabled={change.isPending || !current || !next || !confirm || !!problem}>
+            Change password
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -45,7 +126,7 @@ function ApiToken() {
         <KeyRound size={16} aria-hidden /> API token
       </h2>
       <p className="mt-1 text-sm text-muted">
-        Used by the bookmarklet and the Telegram bridge. {has ? "A token exists; creating a new one revokes it." : "No token yet."}
+        Used by the bookmarklet and other local integrations. {has ? "A token exists; creating a new one revokes it." : "No token yet."}
       </p>
       {token ? (
         <div className="mt-3 space-y-2" data-testid="api-token">

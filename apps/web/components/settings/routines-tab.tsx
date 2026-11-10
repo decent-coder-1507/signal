@@ -16,7 +16,9 @@ import { fmtDateTime, humanize } from "@/lib/labels";
 import type { Routine } from "@/lib/types";
 import { CronBuilder } from "./cron-builder";
 
-const CHANNELS = ["app", "telegram", "email", "push"] as const;
+// Everything happens in the app (ADR-027); email digests are optional. Legacy channels are hidden.
+const CHANNELS = ["app", "email"] as const;
+const shownChannel = (c: string) => (CHANNELS as readonly string[]).includes(c);
 
 export function RoutinesTab() {
   const qc = useQueryClient();
@@ -80,7 +82,7 @@ export function RoutinesTab() {
                   {s}
                 </Badge>
               ))}
-              {r.channels.map((c) => (
+              {r.channels.filter(shownChannel).map((c) => (
                 <Badge key={c} tone="info">
                   {c}
                 </Badge>

@@ -8,6 +8,7 @@ import { useParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { RadarChart } from "@/components/radar-chart";
 import { useStartPost } from "@/components/studio/angles-dialog";
+import { ReportInaccuracy } from "@/components/report-inaccuracy";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -76,6 +77,7 @@ function IdeaView({ idea: i }: { idea: IdeaDetail }) {
         <Badge tone={i.status === "killed" ? "bad" : "muted"} >{humanize(i.status)}</Badge>
         <Badge tone="muted">Lab score {i.lab_score.toFixed(1)}</Badge>
         <Badge tone="muted">{humanize(i.origin)}</Badge>
+        <ReportInaccuracy className="ml-auto" targetType="idea" targetId={i.id} context={{ block: "idea" }} />
       </div>
       <h1 className="mt-2 tracking-tight text-2xl font-semibold leading-tight md:text-3xl">{i.title}</h1>
       {i.one_liner && <p className="mt-1 text-muted">{i.one_liner}</p>}

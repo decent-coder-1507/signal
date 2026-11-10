@@ -129,6 +129,23 @@ async def evals_run(_: CurrentUser, db: DB, sample: int | None = None) -> dict[s
     return {"id": str(r.id), "created_at": r.created_at.isoformat(), "passed": r.passed, **r.report}
 
 
+@router.get("/ops/bench")
+async def bench_status(_: CurrentUser) -> dict[str, Any]:
+    """Engine quality: the last benchmark run (local, else the committed snapshot) + label spot-check agreement."""
+    from signal_core.ops.bench.status import status
+
+    return status()
+
+
+@router.post("/ops/bench/run", status_code=202)
+async def bench_run(_: CurrentUser) -> dict[str, Any]:
+    """Starts `python -m signal_core.ops.bench run` in a child process; poll GET /ops/bench for the result."""
+    from signal_core.ops.bench.status import runner, status
+
+    started = runner.start()
+    return {"started": started, **status()}
+
+
 @router.get("/ops/jobs")
 async def jobs(_: CurrentUser, db: DB, status: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
     q = select(Job).order_by(desc(Job.updated_at)).limit(limit)
