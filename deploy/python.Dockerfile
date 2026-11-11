@@ -24,6 +24,10 @@ COPY apps/worker/pyproject.toml apps/worker/
 COPY apps/scheduler/pyproject.toml apps/scheduler/
 RUN --mount=type=cache,target=/root/.cache/uv     uv sync --frozen --all-packages --extra local-embeddings --no-dev --no-install-workspace
 RUN for i in 1 2 3 4 5; do uv run --no-sync python -m playwright install --with-deps chromium && exit 0;       echo "chromium download retry $i"; sleep 10; done; exit 1
+# Local models (embeddings + Ask re-ranker) are baked in: a runtime download into /tmp stalled the first request
+# (onboarding returned 500) and was lost on every restart. Retries cover the slow link (ADR-023).
+ENV FASTEMBED_CACHE_PATH=/opt/fastembed
+RUN for i in 1 2 3 4 5; do uv run --no-sync python -c "from fastembed import TextEmbedding; from fastembed.rerank.cross_encoder import TextCrossEncoder; TextEmbedding('BAAI/bge-small-en-v1.5'); TextCrossEncoder('Xenova/ms-marco-MiniLM-L-6-v2')" && exit 0; echo "model download retry $i"; sleep 10; done; exit 1
 COPY packages ./packages
 COPY apps/api ./apps/api
 COPY apps/worker ./apps/worker
@@ -35,5 +39,5 @@ RUN --mount=type=cache,target=/root/.cache/uv     uv sync --frozen --all-package
 # The claude_home volume inherits /home/signal/.claude's ownership when first created; a root-owned mount made
 # `claude /login` unable to save credentials.
 RUN useradd -m signal && mkdir -p /app/data /home/signal/.claude \
- && chown -R signal /app /ms-playwright /home/signal/.claude && chmod 700 /home/signal/.claude
+ && chown -R signal /app /ms-playwright /home/signal/.claude /opt/fastembed && chmod 700 /home/signal/.claude
 USER signal
